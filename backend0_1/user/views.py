@@ -37,8 +37,8 @@ def register(request):
             return JsonResponse({'error': 3, 'msg': '确认密码不能为空'})
         if password_1 != password_2:
             return JsonResponse({'errno': 4, 'msg': "两次输入的密码不同"})
-        new_author = User(username=username, password=password_1)
-        new_author.save()
+        new_user = User(username=username, password=password_1)
+        new_user.save()
         return JsonResponse({'errno': 0, 'msg': "注册成功"})
     else:
         return JsonResponse({'errno': 5, 'msg': "请求方式错误"})
