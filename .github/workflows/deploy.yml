@@ -32,4 +32,5 @@ jobs:
       # Target directory
         TARGET: ${{ secrets.ALIYUN_TARGET }}
     - name: migrate DataBase and restart Django
+      run: cd ${{ secrets.ALIYUN_TARGET }}
       
