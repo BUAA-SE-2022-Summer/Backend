@@ -28,7 +28,7 @@ jobs:
       # Remote port
         REMOTE_PORT: 22
       # Source directory
-        SOURCE: "./"
+      #  SOURCE: "./"
       # Target directory
         TARGET: ${{ secrets.ALIYUN_TARGET }}
     - name: migrate DataBase and restart Django
