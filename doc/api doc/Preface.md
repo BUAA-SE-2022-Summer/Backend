@@ -108,7 +108,7 @@
 
 #### Find_all(获取所有用户信息)
 
-- 路由：/user/login
+- 路由：/user/find_all
 
 - 请求方式：**GET**
 
