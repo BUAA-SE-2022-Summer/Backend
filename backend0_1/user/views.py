@@ -4,6 +4,11 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from .models import User
 
+
+def login_check(request):
+    return 'userID' in request.session
+
+
 login_dic = {}
 
 
@@ -22,8 +27,9 @@ def login(request):
             return JsonResponse({'errno': 1001, 'msg': '用户名不存在'})
         if user.password == password:
             # request.session['username'] = username
-            request.session['useID'] = user.userID
+            request.session['userID'] = user.userID
             login_dic[user.username] = request.session
+            # print(request.session['userID'])
             return JsonResponse({'errno': 0, 'msg': "登录成功"})
         else:
             return JsonResponse({'errno': 3, 'msg': "密码错误"})
@@ -63,8 +69,24 @@ def register(request):
 
 
 @csrf_exempt
+def logout(request):
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1, 'msg': "未登录不能登出"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        request.session.flush()
+        login_dic.pop(user.username)
+        return JsonResponse({'errno': 0, 'msg': "注销成功"})
+    else:
+        return JsonResponse({'errno': 4, 'msg': "请求方式错误"})
+
+
+@csrf_exempt
 def find_all(request):
     if request.method == 'GET':
+        if not login_check(request):
+            return JsonResponse({'errno': 1, 'msg': "用户未登录"})
         users = User.objects.all()
         user_list = []
         for i in users:
