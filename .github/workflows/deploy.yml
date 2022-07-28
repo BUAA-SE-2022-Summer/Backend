@@ -36,5 +36,5 @@ jobs:
           username: ${{ secrets.ALIYUN_REMOTE_USER }}
           key: ${{ secrets.ALIYUN_SERVER_ACCESS_TOKEN }}
           port: 22
-          script: source ${{ ALIYUN_SHELL_SCRIPT_ADDRESS }}
+          script: source ${{ secrets.ALIYUN_SHELL_SCRIPT_ADDRESS }}
       
