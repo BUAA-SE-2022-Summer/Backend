@@ -9,14 +9,22 @@ import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 cf = configparser.ConfigParser()
 cf.read(os.path.join(BASE_DIR, 'Config/django.conf'))
-
 auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
 endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
 bucket = oss2.Bucket(auth, endpoint, 'xuemolan')
 base_image_url = 'https://xuemolan.oss-cn-hangzhou.aliyuncs.com/'
+
+
+def validate_email(email):
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(email)
+        return True
+    except ValidationError:
+        return False
 
 
 def update_img_file(image, userID):
@@ -83,10 +91,12 @@ def register(request):
             return JsonResponse({'errno': 3, 'msg': '确认密码不能为空'})
         if email == '':
             return JsonResponse({'errno': 4, 'msg': '邮箱不能为空'})
+        if not validate_email(email):
+            return JsonResponse({'errno': 5, 'msg': '邮箱格式错误'})
         if username_exist(username):  # 昵称不重复
-            return JsonResponse({'errno': 5, 'msg': "昵称已存在"})
+            return JsonResponse({'errno': 6, 'msg': "昵称已存在"})
         if password != password_confirm:
-            return JsonResponse({'errno': 6, 'msg': '两次密码不一致'})
+            return JsonResponse({'errno': 7, 'msg': '两次密码不一致'})
         new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
         return JsonResponse({'errno': 0, 'msg': "注册成功"})
