@@ -6,6 +6,7 @@ from user.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.db import *
 
+
 # Create your views here.
 
 
@@ -32,6 +33,7 @@ def create_team(request):
         return JsonResponse({'errno': 2098, 'msg': "团队名称重复，取个新名字吧～"})
     new_team = Team(manager=manager, team_name=team_name)
     new_team.save()
+    Team_User.objects.create(team=new_team, user=manager, is_supervisor=True)
     return JsonResponse({'errno': 0,
                          'msg': "新建团队成功",
                          'teamID': new_team.teamID,
@@ -67,7 +69,7 @@ def invite_member(request):
     if len(relation) != 0:
         return JsonResponse({'errno': 2091, 'msg': "您邀请的用户已在团队中"})
 
-    new_relation = Team_User(team=team, user=target_user)
+    new_relation = Team_User(team=team, user=target_user, is_supervisor=False)
     new_relation.save()
     return JsonResponse({'errno': 0, 'msg': "邀请成功"})
 
@@ -120,6 +122,3 @@ def kick_member(request):
     for i in cur_relation:
         i.delete()
     return JsonResponse({'errno': 0, 'msg': "踢除成功"})
-
-    
-
