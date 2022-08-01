@@ -26,3 +26,4 @@ class Team_User(models.Model):
         to_field='userID',
         on_delete=models.CASCADE,
     )
+    is_supervisor = models.BooleanField(null=False, default=False)
