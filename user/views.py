@@ -5,9 +5,13 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User
 import oss2
 import configparser
+import os
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 cf = configparser.ConfigParser()
-cf.read('Config/django.conf')
+cf.read(os.path.join(BASE_DIR, 'Config/django.conf'))
 
 auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
 endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
@@ -66,6 +70,7 @@ def register(request):
     if request.method == 'POST':
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
         real_name = request.POST.get('real_name', '')
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
@@ -74,10 +79,14 @@ def register(request):
             return JsonResponse({'errno': 1, 'msg': '昵称不能为空'})
         if password == '':
             return JsonResponse({'errno': 2, 'msg': '密码不能为空'})
+        if password_confirm == '':
+            return JsonResponse({'errno': 3, 'msg': '确认密码不能为空'})
         if email == '':
-            return JsonResponse({'errno': 3, 'msg': '邮箱不能为空'})
+            return JsonResponse({'errno': 4, 'msg': '邮箱不能为空'})
         if username_exist(username):  # 昵称不重复
-            return JsonResponse({'errno': 4, 'msg': "昵称已存在"})
+            return JsonResponse({'errno': 5, 'msg': "昵称已存在"})
+        if password != password_confirm:
+            return JsonResponse({'errno': 6, 'msg': '两次密码不一致'})
         new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
         return JsonResponse({'errno': 0, 'msg': "注册成功"})
@@ -138,6 +147,7 @@ def update_user_info(request):
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
 
 
+@csrf_exempt
 def update_user_img(request):
     if request.method == 'POST':
         if not login_check(request):
