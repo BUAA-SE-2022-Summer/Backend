@@ -1,8 +1,8 @@
 import os
 import sys
 
-os.chdir(os.path.dirname(__file__))
-sys.path.append("..")
+# os.chdir(os.path.dirname(__file__))
+# sys.path.append("..")
 from django.db import models
 from user.models import User
 

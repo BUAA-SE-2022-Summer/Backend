@@ -138,6 +138,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+import configparser
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -209,13 +211,15 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+cf = configparser.ConfigParser()
+cf.read(BASE_DIR / 'Config' / 'django.conf')
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'django_backend',
-        'USER': 'horik_database_account',
-        'PASSWORD': 'ZAL4CQx2mPLjx+d',
-        'HOST': 'rm-2zeyx2vi320r79mdsio.mysql.rds.aliyuncs.com',
+        'USER': cf.get('db', 'MYSQL_USER'),
+        'PASSWORD': cf.get('db', 'MYSQL_PWD'),
+        'HOST': cf.get('db', 'MYSQL_HOST'),
         'PORT': '3306',
     }
 }

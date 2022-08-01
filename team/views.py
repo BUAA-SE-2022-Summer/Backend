@@ -11,7 +11,11 @@ from django.db import *
 
 
 def login_check(request):
-    return 'userID' in request.session
+    # return 'userID' in request.session
+    lc = request.session.get('userID')
+    if not lc:
+        return False
+    return True
 
 
 @csrf_exempt
@@ -37,12 +41,13 @@ def create_team(request):
     return JsonResponse({'errno': 0,
                          'msg': "新建团队成功",
                          'teamID': new_team.teamID,
-                         'create_time': new_team.create_time})
+                         'create_time': new_team.create_time,
+                         'creator': manager})
 
 
 @csrf_exempt
 def invite_member(request):
-    if requet.method != 'POST':
+    if request.method != 'POST':
         return method_err()
     if not login_check(request):
         return not_login_err()
@@ -54,17 +59,21 @@ def invite_member(request):
     except ObjectDoesNotExist:
         return JsonResponse({'errno': 2095, 'msg': "您邀请的用户不存在"})
     try:
-        team_name = request.POST.get('team_name')
+        # team_name = request.POST.get('team_name')
+        teamID = request.POST.get('teamID')
     except ValueError:
-        return JsonResponse({'errno': 2094, 'msg': "无法获取团队名称"})
+        return JsonResponse({'errno': 2094, 'msg': "无法获取团队id"})
     userID = request.session['userID']
     try:
-        team = Team.objects.get(team_name=team_name, manager=User.objects.get(userID=userID))
+        team = Team.objects.get(teamID=teamID)  # , manager=User.objects.get(userID=userID))
     except ObjectDoesNotExist:
-        return JsonResponse({'errno': 2093, 'msg': "团队不存在或您不是团队管理员，邀请失败"})
+        # return JsonResponse({'errno': 2093, 'msg': "团队不存在或您不是团队管理员，邀请失败"})
+        return JsonResponse({'errno': 2093, 'msg': "团队不存在"})
     except MultipleObjectsReturned:
         return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
-
+    is_manager_re = Team_User.objects.filter(team=team, user=User.objects.get(userID=userID), is_supervisor=True)
+    if len(is_manager_re) == 0:
+        return JsonResponse({'errno': 2093, 'msg': "您不具备该团队的管理员权限"})
     relation = Team_User.objects.filter(team=team, user=target_user)
     if len(relation) != 0:
         return JsonResponse({'errno': 2091, 'msg': "您邀请的用户已在团队中"})
@@ -76,7 +85,7 @@ def invite_member(request):
 
 @csrf_exempt
 def kick_member(request):
-    if requet.method != 'POST':
+    if request.method != 'POST':
         return method_err()
     if not login_check(request):
         return not_login_err()
@@ -86,7 +95,7 @@ def kick_member(request):
         teamID = request.POST.get('teamID')
         # team_name = request.POST.get('team_name')
     except ValueError:
-        return JsonResponse({'errno': 2094, 'msg': "无法获取团队名称"})
+        return JsonResponse({'errno': 2094, 'msg': "无法获取团队id"})
     try:
         username = request.POST.get('username')
     except ValueError:
@@ -114,11 +123,82 @@ def kick_member(request):
     try:
         kick_user = User.objects.get(username=username)
     except ObjectDoesNotExist:
-        return JsonResponse({'errno': 2095, 'msg': "用户不存在"})
-
+        return JsonResponse({'errno': 2095, 'msg': "您要踢除的用户不存在"})
+    # if kick_user == user:
+    #     return JsonResponse({'errno': 2093, 'msg': "您不能把自己踢除团队哟～"})
     cur_relation = Team_User.objects.filter(team=team, user=kick_user)
     if len(cur_relation) == 0:
         return JsonResponse({'errno': 2091, 'msg': "无法踢除不在团队中的用户"})
+    if kick_user == user:
+        return JsonResponse({'errno': 2093, 'msg': "您不能把自己踢除团队哟～"})
     for i in cur_relation:
         i.delete()
     return JsonResponse({'errno': 0, 'msg': "踢除成功"})
+
+
+@csrf_exempt
+def set_manager(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    try:
+        target_username = request.POST.get('username')
+        teamID = request.POST.get('teamID')
+    except ValueError:
+        return JsonResponse({'errno': 2094, 'msg': "信息获取失败"})
+    try:
+        team = Team.objects.get(teamID=teamID)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2093, 'msg': "团队不存在"})
+    try:
+        target_user = User.objects.get(username=target_username)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2095, 'msg': "用户不存在"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    if user != team.manager:
+        return JsonResponse({'errno': 2093, 'msg': "您不具备管理员权限"})
+    relation = Team_User.objects.filter(team=team, user=target_user)
+    if len(relation) == 0:
+        return JsonResponse({'errno': 2091, 'msg': "用户不在团队中"})
+    if len(relation) >= 2:
+        return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
+    for r in relation:
+        if r.is_supervisor:
+            return JsonResponse({'errno': 2090, 'msg': "用户已是管理员"})
+        r.is_supervisor = True
+        r.save()
+    return JsonResponse({'errno': 0, 'msg': "设置成功"})
+
+
+@csrf_exempt
+def get_team_info(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    try:
+        teamID = request.POST.get('teamID')
+    except ValueError:
+        return JsonResponse({'errno': 2094, 'msg': "信息获取失败"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    try:
+        team = Team.objects.get(teamID=teamID)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2093, 'msg': "团队不存在"})
+    except MultipleObjectsReturned:
+        return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
+    relation_check = Team_User.objects.filter(team=team, user=user)
+    if len(relation_check) == 0:
+        return JsonResponse({'errno': 2089, 'msg': "您不属于该团队"})
+    team_user = Team_User.objects.filter(team=team)
+    user_list = []
+    for i in team_user:
+        i_user = i.user
+        user_list.append({'username': i_user.username,
+                          'real_name': i_user.real_name,
+                          'email': i_user.email,
+                          'is_supervisor': i.is_supervisor})
+    return JsonResponse({'errno': 0, 'msg': "查看成功", 'user_list': user_list})
