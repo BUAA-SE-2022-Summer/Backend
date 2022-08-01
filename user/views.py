@@ -116,7 +116,7 @@ def get_user_info(request):
         userID = request.session['userID']
         user = User.objects.get(userID=userID)
         data_info = {'username': user.username, 'real_name': user.real_name, 'email': user.email,
-                     'phone': user.phone, 'profile': user.profile}
+                     'phone': user.phone, 'profile': user.profile, 'img': user.img}
         return JsonResponse({'errno': 0, 'msg': "获取用户信息成功", 'data': data_info})
     else:
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
