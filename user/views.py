@@ -159,7 +159,11 @@ def update_user_info(request):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         profile = request.POST.get('profile', '')
-        if not validate_email(email):
+        if username == '':
+            return JsonResponse({'errno': 3, 'msg': '昵称不能为空'})
+        if password == '':
+            return JsonResponse({'errno': 4, 'msg': '密码不能为空'})
+        if email != '' and not validate_email(email):
             return JsonResponse({'errno': 1, 'msg': '邮箱格式错误'})
         if phone != '' and not validate_phone(phone):
             return JsonResponse({'errno': 2, 'msg': '手机号格式错误'})
