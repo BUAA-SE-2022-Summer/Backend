@@ -1,37 +1,218 @@
-# from django.core.exceptions import ObjectDoesNotExist
-# from django.http import JsonResponse
-# from django.views.decorators.csrf import csrf_exempt
-# from project.models import Project
-# from user.models import User
-# from django.shortcuts import render
-#
-#
-# # Create your views here.
-# @csrf_exempt
-# def create_project(request):
-#     from myUtils.utils import login_check
-#     if request.method == 'POST':
-#         if not login_check(request):
-#             return JsonResponse({'errno': 1002, 'msg': "未登录不能创建项目"})
-#         userID = request.session['userID']
-#         user = User.objects.get(userID=userID)
-#         project_name = request.POST.get('project_name', '')
-#         project_desc = request.POST.get('project_desc', '')
-#         if project_name == '':
-#             return JsonResponse({'errno': 1, 'msg': '项目名称不能为空'})
-#         if project_desc == '':
-#             return JsonResponse({'errno': 2, 'msg': '项目描述不能为空'})
-#         if project_img == '':
-#             return JsonResponse({'errno': 3, 'msg': '项目图片不能为空'})
-#         if project_user == '':
-#             return JsonResponse({'errno': 4, 'msg': '项目创建者不能为空'})
-#         if project_team == '':
-#             return JsonResponse({'errno': 5, 'msg': '项目所属团队不能为空'})
-#         try:
-#             project = Project.objects.get(projectName=project_name)
-#         except ObjectDoesNotExist:
-#             project = Project(projectName=project_name, projectDesc=project_desc, projectImg=project_img, projectUser=project_user, projectTeam=project_team)
-#             project.save()
-#             return JsonResponse({'errno': 0, 'msg': '创建项目成功'})
-#         else:
-#             return JsonResponse({'errno': 6, 'msg': '项目名称已存在'})
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from project.models import Project
+from user.models import User
+from team.models import Team
+from team.models import Team_User
+from django.shortcuts import render
+
+
+# Create your views here.
+@csrf_exempt
+def create_project(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能创建项目"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        project_name = request.POST.get('project_name', '')
+        project_desc = request.POST.get('project_desc', '')
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        if project_name == '':
+            return JsonResponse({'errno': 1, 'msg': '项目名称不能为空'})
+        new_project = Project(projectName=project_name, projectDesc=project_desc,
+                              projectUser=user.userID, team=team)
+        new_project.save()
+        return JsonResponse({'errno': 0, 'msg': '创建项目成功', 'projectID': new_project.projectID})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def delete_project(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能删除项目"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        projectID = request.POST.get('projectID', '')
+        project = Project.objects.get(projectID=projectID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限删除该项目'})
+        project.is_delete = True
+        return JsonResponse({'errno': 0, 'msg': '删除项目成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def rename_project(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能修改项目名称"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        projectID = request.POST.get('projectID', '')
+        project = Project.objects.get(projectID=projectID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限修改该项目名称'})
+        new_projectName = request.POST.get('project_name', '')
+        if new_projectName == '':
+            return JsonResponse({'errno': 2, 'msg': '项目名称不能为空'})
+        project.projectName = new_projectName
+        project.save()
+        return JsonResponse({'errno': 0, 'msg': '修改项目名称成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def get_project_list(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projects = Project.objects.filter(team=team, is_delete=False)
+        project_list = []
+        for project in projects:
+            project_list.append({
+                'projectID': project.projectID,
+                'projectName': project.projectName,
+                'projectDesc': project.projectDesc,
+                'projectImg': project.projectImg,
+                'projectUser': project.projectUser,
+                'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_star': project.is_star,
+            })
+        return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def get_star_project_list(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projects = Project.objects.filter(team=team, is_delete=False, is_star=True)
+        project_list = []
+        for project in projects:
+            project_list.append({
+                'projectID': project.projectID,
+                'projectName': project.projectName,
+                'projectDesc': project.projectDesc,
+                'projectImg': project.projectImg,
+                'projectUser': project.projectUser,
+                'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_star': project.is_star,
+            })
+        return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def get_create_project_list(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projects = Project.objects.filter(team=team, is_delete=False, projectUser=user.userID)
+        project_list = []
+        for project in projects:
+            project_list.append({
+                'projectID': project.projectID,
+                'projectName': project.projectName,
+                'projectDesc': project.projectDesc,
+                'projectImg': project.projectImg,
+                'projectUser': project.projectUser,
+                'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_star': project.is_star,
+            })
+        return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def get_delete_project_list(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projects = Project.objects.filter(team=team, is_delete=True)
+        project_list = []
+        for project in projects:
+            project_list.append({
+                'projectID': project.projectID,
+                'projectName': project.projectName,
+                'projectDesc': project.projectDesc,
+                'projectImg': project.projectImg,
+                'projectUser': project.projectUser,
+                'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'is_star': project.is_star,
+            })
+        return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def delete_project_recycle_bin(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(team=team)
+        if user not in users:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projectID = request.POST.get('projectID', '')
+        project = Project.objects.get(projectID=projectID)
+        project.delete()
+        return JsonResponse({'errno': 0, 'msg': '删除项目成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
