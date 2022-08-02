@@ -11,6 +11,9 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 cf = configparser.ConfigParser()
 cf.read(os.path.join(BASE_DIR, 'Config/django.conf'))
+
+# cf.read('./Config/django.conf')
+
 auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
 endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
 bucket = oss2.Bucket(auth, endpoint, 'xuemolan')

@@ -175,6 +175,7 @@ INSTALLED_APPS = [
     'user.apps.UserConfig',
     'project.apps.ProjectConfig',
     'file.apps.FileConfig',
+    'team',
 ]
 
 MIDDLEWARE = [
