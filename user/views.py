@@ -108,9 +108,9 @@ def register(request):
         if phone != '' and not validate_phone(phone):
             return JsonResponse({'errno': 6, 'msg': '手机号格式错误'})
         if username_exist(username):  # 昵称不重复
-            return JsonResponse({'errno': 6, 'msg': "昵称已存在"})
+            return JsonResponse({'errno': 7, 'msg': "昵称已存在"})
         if password != password_confirm:
-            return JsonResponse({'errno': 7, 'msg': '两次密码不一致'})
+            return JsonResponse({'errno': 8, 'msg': '两次密码不一致'})
         new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
         return JsonResponse({'errno': 0, 'msg': "注册成功"})
