@@ -267,3 +267,28 @@ def rename_team(request):
     team.team_name = new_name
     team.save()
     return JsonResponse({'errno': 0, 'msg': "修改成功"})
+
+
+@csrf_exempt
+def show_my_team_list(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    team_list_res = []
+    team_list = Team_User.objects.filter(user=user)
+    for i in team_list:
+        team = i.team
+        member_num_check = Team_User.objects.filter(team=team)
+        num = len(member_num_check)
+        team_list_res.append({
+            'teamID': i.team.teamID,
+            'team_name': i.team.team_name,
+            'team_manager': i.team.manager.username,
+            'is_creator': i.is_creator,
+            'is_supervisor': i.is_supervisor,
+            'member_num': num
+        })
+    return JsonResponse({'errno': 0, 'msg': "查看成功", 'team_list': team_list_res})

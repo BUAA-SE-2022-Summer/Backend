@@ -10,4 +10,5 @@ urlpatterns = [
     path('delete_manager', views.delete_manager),
     path('get_team_info', views.get_team_info),
     path('rename_team', views.rename_team),
+    path('show_my_team_list', views.show_my_team_list),
 ]
