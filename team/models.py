@@ -33,3 +33,4 @@ class Team_User(models.Model):
         on_delete=models.CASCADE,
     )
     is_supervisor = models.BooleanField(null=False, default=False)
+    is_creator = models.BooleanField(null=False, default=False)

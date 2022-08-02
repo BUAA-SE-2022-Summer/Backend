@@ -7,6 +7,7 @@ urlpatterns = [
     path('invite_member', views.invite_member),
     path('kick_member', views.kick_member),
     path('set_manager', views.set_manager),
+    path('delete_manager', views.delete_manager),
     path('get_team_info', views.get_team_info),
-
+    path('rename_team', views.rename_team),
 ]

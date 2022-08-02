@@ -37,7 +37,7 @@ def create_team(request):
         return JsonResponse({'errno': 2098, 'msg': "团队名称重复，取个新名字吧～"})
     new_team = Team(manager=manager, team_name=team_name)
     new_team.save()
-    Team_User.objects.create(team=new_team, user=manager, is_supervisor=True)
+    Team_User.objects.create(team=new_team, user=manager, is_supervisor=True, is_creator=True)
     return JsonResponse({'errno': 0,
                          'msg': "新建团队成功",
                          'teamID': new_team.teamID,
@@ -78,7 +78,7 @@ def invite_member(request):
     if len(relation) != 0:
         return JsonResponse({'errno': 2091, 'msg': "您邀请的用户已在团队中"})
 
-    new_relation = Team_User(team=team, user=target_user, is_supervisor=False)
+    new_relation = Team_User(team=team, user=target_user, is_supervisor=False, is_creator=False)
     new_relation.save()
     return JsonResponse({'errno': 0, 'msg': "邀请成功"})
 
@@ -118,8 +118,12 @@ def kick_member(request):
         return JsonResponse({'errno': 2093, 'msg': "团队不存在"})
     except MultipleObjectsReturned:
         return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
-    if user != team.manager:
+    try:
+        user_re = Team_User.objects.get(team=team, user=user, is_supervisor=True)
+    except ObjectDoesNotExist:
         return JsonResponse({'errno': 2093, 'msg': "您不是团队管理员，无法踢除其他团队成员"})
+    # if user != team.manager:
+    #     return JsonResponse({'errno': 2093, 'msg': "您不是团队管理员，无法踢除其他团队成员"})
     try:
         kick_user = User.objects.get(username=username)
     except ObjectDoesNotExist:
@@ -130,8 +134,10 @@ def kick_member(request):
     if len(cur_relation) == 0:
         return JsonResponse({'errno': 2091, 'msg': "无法踢除不在团队中的用户"})
     if kick_user == user:
-        return JsonResponse({'errno': 2093, 'msg': "您不能把自己踢除团队哟～"})
+        return JsonResponse({'errno': 2093, 'msg': "您不能把自己踢出团队哟～"})
     for i in cur_relation:
+        if i.is_supervisor:
+            return JsonResponse({'errno': 2087, 'msg': "您不能将管理员踢出团队"})
         i.delete()
     return JsonResponse({'errno': 0, 'msg': "踢除成功"})
 
@@ -158,7 +164,7 @@ def set_manager(request):
     userID = request.session['userID']
     user = User.objects.get(userID=userID)
     if user != team.manager:
-        return JsonResponse({'errno': 2093, 'msg': "您不具备管理员权限"})
+        return JsonResponse({'errno': 2093, 'msg': "您不具备超管权限"})
     relation = Team_User.objects.filter(team=team, user=target_user)
     if len(relation) == 0:
         return JsonResponse({'errno': 2091, 'msg': "用户不在团队中"})
@@ -170,6 +176,38 @@ def set_manager(request):
         r.is_supervisor = True
         r.save()
     return JsonResponse({'errno': 0, 'msg': "设置成功"})
+
+
+@csrf_exempt
+def delete_manager(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    try:
+        target_username = request.POST.get('username')
+        teamID = request.POST.get('teamID')
+    except ValueError:
+        return JsonResponse({'errno': 2094, 'msg': "信息获取失败"})
+    try:
+        team = Team.objects.get(teamID=teamID)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2093, 'msg': "团队不存在"})
+    try:
+        target_user = User.objects.get(username=target_username)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2095, 'msg': "用户不存在"})
+    userID = request.session['userID']  # 当前用户
+    user = User.objects.get(userID=userID)
+    if team.manager != user:
+        return JsonResponse({'errno': 2093, 'msg': "您不具备超管权限"})
+    try:
+        relation = Team_User.objects.get(team=team, user=target_user, is_supervisor=True, is_creator=False)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2088, 'msg': "该用户不是普通管理员"})
+    relation.is_supervisor = False
+    relation.save()
+    return JsonResponse({'errno': 0, 'msg': "成功解除管理权限"})
 
 
 @csrf_exempt
@@ -200,5 +238,32 @@ def get_team_info(request):
         user_list.append({'username': i_user.username,
                           'real_name': i_user.real_name,
                           'email': i_user.email,
-                          'is_supervisor': i.is_supervisor})
+                          'is_supervisor': i.is_supervisor,
+                          'is_creator': i.is_creator})
     return JsonResponse({'errno': 0, 'msg': "查看成功", 'user_list': user_list})
+
+
+@csrf_exempt
+def rename_team(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    try:
+        new_name = request.POST.get('new_name')
+        teamID = request.POST.get('teamID')
+    except ValueError:
+        return JsonResponse({'errno': 2094, 'msg': "信息获取失败"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    team = Team.objects.get(teamID=teamID)
+    try:
+        relation = Team_User.objects.get(user=user, team=team, is_supervisor=True)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2093, 'msg': "您不是该团队的管理员"})
+    team_remain = Team.objects.filter(team_name=new_name)
+    if len(team_remain) != 0:
+        return JsonResponse({'errno': 2098, 'msg': "团队名称重复，取个新名字吧～"})
+    team.team_name = new_name
+    team.save()
+    return JsonResponse({'errno': 0, 'msg': "修改成功"})
