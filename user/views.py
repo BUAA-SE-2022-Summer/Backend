@@ -7,6 +7,7 @@ import oss2
 import configparser
 import os
 from pathlib import Path
+import re
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 cf = configparser.ConfigParser()
@@ -18,6 +19,14 @@ auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
 endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
 bucket = oss2.Bucket(auth, endpoint, 'xuemolan')
 base_image_url = 'https://xuemolan.oss-cn-hangzhou.aliyuncs.com/'
+
+
+def validate_phone(phone):
+    ret = re.match(r"^1[35678]\d{9}$", phone)
+    if ret:
+        return True
+    else:
+        return False
 
 
 def validate_email(email):
@@ -96,6 +105,8 @@ def register(request):
             return JsonResponse({'errno': 4, 'msg': '邮箱不能为空'})
         if not validate_email(email):
             return JsonResponse({'errno': 5, 'msg': '邮箱格式错误'})
+        if phone != '' and not validate_phone(phone):
+            return JsonResponse({'errno': 6, 'msg': '手机号格式错误'})
         if username_exist(username):  # 昵称不重复
             return JsonResponse({'errno': 6, 'msg': "昵称已存在"})
         if password != password_confirm:
@@ -148,6 +159,10 @@ def update_user_info(request):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         profile = request.POST.get('profile', '')
+        if not validate_email(email):
+            return JsonResponse({'errno': 1, 'msg': '邮箱格式错误'})
+        if phone != '' and not validate_phone(phone):
+            return JsonResponse({'errno': 2, 'msg': '手机号格式错误'})
         user.username = username
         user.password = password
         user.real_name = real_name

@@ -43,11 +43,60 @@ def delete_project(request):
         project = Project.objects.get(projectID=projectID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限删除该项目'})
         project.is_delete = True
+        project.save()
         return JsonResponse({'errno': 0, 'msg': '删除项目成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def star_project(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能收藏项目"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        projectID = request.POST.get('projectID', '')
+        project = Project.objects.get(projectID=projectID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限收藏该项目'})
+        if project.is_star is True:
+            return JsonResponse({'errno': 2, 'msg': '该项目已经被收藏'})
+        project.is_star = True
+        project.save()
+        return JsonResponse({'errno': 0, 'msg': '收藏项目成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def unstar_project(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能取消收藏项目"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        projectID = request.POST.get('projectID', '')
+        project = Project.objects.get(projectID=projectID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限取消收藏该项目'})
+        if project.is_star is False:
+            return JsonResponse({'errno': 2, 'msg': '该项目未被收藏'})
+        project.is_star = False
+        project.save()
+        return JsonResponse({'errno': 0, 'msg': '取消收藏项目成功'})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
@@ -64,8 +113,8 @@ def rename_project(request):
         project = Project.objects.get(projectID=projectID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限修改该项目名称'})
         new_projectName = request.POST.get('project_name', '')
         if new_projectName == '':
@@ -87,8 +136,8 @@ def get_project_list(request):
         user = User.objects.get(userID=userID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
         projects = Project.objects.filter(team=team, is_delete=False)
         project_list = []
@@ -117,8 +166,8 @@ def get_star_project_list(request):
         user = User.objects.get(userID=userID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
         projects = Project.objects.filter(team=team, is_delete=False, is_star=True)
         project_list = []
@@ -147,8 +196,8 @@ def get_create_project_list(request):
         user = User.objects.get(userID=userID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
         projects = Project.objects.filter(team=team, is_delete=False, projectUser=user.userID)
         project_list = []
@@ -177,8 +226,8 @@ def get_delete_project_list(request):
         user = User.objects.get(userID=userID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
         projects = Project.objects.filter(team=team, is_delete=True)
         project_list = []
@@ -207,12 +256,40 @@ def delete_project_recycle_bin(request):
         user = User.objects.get(userID=userID)
         teamID = request.POST.get('teamID', '')
         team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(team=team)
-        if user not in users:
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
         projectID = request.POST.get('projectID', '')
-        project = Project.objects.get(projectID=projectID)
-        project.delete()
+        try:
+            project = Project.objects.get(projectID=projectID, is_delete=True)
+            project.delete()
+        except:
+            return JsonResponse({'errno': 2, 'msg': '该项目不存在'})
         return JsonResponse({'errno': 0, 'msg': '删除项目成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def cancel_delete_project(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projectID = request.POST.get('projectID', '')
+        try:
+            project = Project.objects.get(projectID=projectID, is_delete=True)
+            project.is_delete = False
+            project.save()
+        except:
+            return JsonResponse({'errno': 2, 'msg': '该项目不存在'})
+        return JsonResponse({'errno': 0, 'msg': '恢复项目成功'})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
