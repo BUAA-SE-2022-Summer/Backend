@@ -287,5 +287,73 @@ def project_root_filelist(request):
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
     root_file = project.root_file
     root_fileID = root_file.fileID
-    filelist = acquire_file_list(root_fileID, projectID,False)
+    filelist = acquire_file_list(root_fileID, projectID, False)
     return JsonResponse({'errno': 0, 'msg': "成功打开项目", 'filelist': filelist})
+
+
+@csrf_exempt
+def get_dir_list(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        dirID = request.POST.get('dirID')
+        projectID = request.POST.get('projectID')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    try:
+        project = Project.objects.get(projectID=projectID)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 3089, 'msg': "无法获取项目信息"})
+    # 查询用户是否处于该项目团队
+    team = project.team
+    user_perm_check = Team_User.objects.filter(user=user, team=team)
+    if len(user_perm_check) == 0:
+        return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
+    try:
+        dir = File.objects.get(fileID=dirID, isDelete=False, projectID=projectID, team=team)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 3088, 'msg': "无法获取目录信息"})
+    if dir.file_type != 'dir':
+        return JsonResponse({'errno': 3087, 'msg': "无法展开非目录文件"})
+    dir_list = acquire_file_list(dirID, projectID, False)
+    return JsonResponse({'errno': 0, 'msg': "成功打开文件夹", 'dirlist': dir_list})
+
+
+def acquire_delete_filelist(dirID, projectID):
+    res = []
+    sub_list = File.objects.filter(fatherID=dirID, isDelete=True, projectID=projectID)
+    for i in sub_list:
+        res.append({'fileID': i.fileID,
+                    'file_name': i.file_name,
+                    # 'create_time': i.create_time,
+                    'delete_time': i.last_modify_time,
+                    'file_type': i.file_type})
+    return res
+
+
+@csrf_exempt
+def delete_filelist_in_project(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        projectID = request.POST.get('projectID')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    try:
+        project = Project.objects.get(projectID=projectID)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 3089, 'msg': "无法获取项目信息"})
+    team = project.team
+    user_perm_check = Team_User.objects.filter(user=user, team=team)
+    if len(user_perm_check) == 0:
+        return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
+    root_file = project.root_file
+    root_fileID = root_file.fileID
+    filelist = acquire_delete_filelist(root_fileID, projectID)
+    return JsonResponse({'errno': 0, 'msg': "成功打开回收站", 'delete_filelist': filelist})
