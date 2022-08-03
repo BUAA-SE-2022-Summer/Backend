@@ -174,7 +174,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'user.apps.UserConfig',
     'project.apps.ProjectConfig',
-    'file.apps.FileConfig',
+    'prototype.apps.PrototypeConfig',
     'team',
 ]
 

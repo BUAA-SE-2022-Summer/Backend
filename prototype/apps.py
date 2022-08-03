@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class FileConfig(AppConfig):
+class PrototypeConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'file'
+    name = 'prototype'
