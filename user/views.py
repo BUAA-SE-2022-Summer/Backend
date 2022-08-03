@@ -7,17 +7,36 @@ import oss2
 import configparser
 import os
 from pathlib import Path
+import re
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 cf = configparser.ConfigParser()
 cf.read(os.path.join(BASE_DIR, 'Config/django.conf'))
+
 # cf.read('./Config/django.conf')
 
 auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
 endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
 bucket = oss2.Bucket(auth, endpoint, 'xuemolan')
 base_image_url = 'https://xuemolan.oss-cn-hangzhou.aliyuncs.com/'
+
+
+def validate_phone(phone):
+    ret = re.match(r"^1[35678]\d{9}$", phone)
+    if ret:
+        return True
+    else:
+        return False
+
+
+def validate_email(email):
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(email)
+        return True
+    except ValidationError:
+        return False
 
 
 def update_img_file(image, userID):
@@ -71,6 +90,7 @@ def register(request):
     if request.method == 'POST':
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
+        password_confirm = request.POST.get('password_confirm', '')
         real_name = request.POST.get('real_name', '')
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
@@ -79,10 +99,18 @@ def register(request):
             return JsonResponse({'errno': 1, 'msg': '昵称不能为空'})
         if password == '':
             return JsonResponse({'errno': 2, 'msg': '密码不能为空'})
+        if password_confirm == '':
+            return JsonResponse({'errno': 3, 'msg': '确认密码不能为空'})
         if email == '':
-            return JsonResponse({'errno': 3, 'msg': '邮箱不能为空'})
+            return JsonResponse({'errno': 4, 'msg': '邮箱不能为空'})
+        if not validate_email(email):
+            return JsonResponse({'errno': 5, 'msg': '邮箱格式错误'})
+        if phone != '' and not validate_phone(phone):
+            return JsonResponse({'errno': 6, 'msg': '手机号格式错误'})
         if username_exist(username):  # 昵称不重复
-            return JsonResponse({'errno': 4, 'msg': "昵称已存在"})
+            return JsonResponse({'errno': 7, 'msg': "昵称已存在"})
+        if password != password_confirm:
+            return JsonResponse({'errno': 8, 'msg': '两次密码不一致'})
         new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
         return JsonResponse({'errno': 0, 'msg': "注册成功"})
@@ -111,8 +139,8 @@ def get_user_info(request):
             return JsonResponse({'errno': 1002, 'msg': "未登录不能获取用户信息"})
         userID = request.session['userID']
         user = User.objects.get(userID=userID)
-        data_info = {'username': user.username, 'real_name': user.real_name, 'email': user.email,
-                     'phone': user.phone, 'profile': user.profile}
+        data_info = {'username': user.username, 'password': user.password, 'real_name': user.real_name, 'email': user.email,
+                     'phone': user.phone, 'profile': user.profile, 'img': user.img}
         return JsonResponse({'errno': 0, 'msg': "获取用户信息成功", 'data': data_info})
     else:
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
@@ -131,6 +159,10 @@ def update_user_info(request):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         profile = request.POST.get('profile', '')
+        if not validate_email(email):
+            return JsonResponse({'errno': 1, 'msg': '邮箱格式错误'})
+        if phone != '' and not validate_phone(phone):
+            return JsonResponse({'errno': 2, 'msg': '手机号格式错误'})
         user.username = username
         user.password = password
         user.real_name = real_name
@@ -143,6 +175,7 @@ def update_user_info(request):
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
 
 
+@csrf_exempt
 def update_user_img(request):
     if request.method == 'POST':
         if not login_check(request):

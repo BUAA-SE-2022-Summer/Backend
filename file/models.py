@@ -1,7 +1,7 @@
 from django.db import models
 from user.models import User
 from team.models import Team
-
+from project.models import Project
 
 # Create your models here.
 
@@ -21,7 +21,6 @@ class File(models.Model):
     create_time = models.DateTimeField(auto_now_add=True)
     last_modify_time = models.DateTimeField(auto_now=True)
     # last_read_time = models.DateTimeField(auto_now_add=True)  # 上次访问时间，只在read_file的时候会更新
-
     # user为文档的创建者
     user = models.ForeignKey(
         User,
@@ -36,10 +35,9 @@ class File(models.Model):
         on_delete=models.CASCADE,
         blank=True, null=True
     )
-
-    # 文档所属的项目  待merge
-    # project = models.ForeignKey(Project, on_delete=models.CASCADE,
-    #                             null=False)
+    # 文档所属的项目
+    project = models.ForeignKey(Project, on_delete=models.CASCADE,
+                                null=False)
 
     # team_perm = models.IntegerField(default=0)
 
@@ -50,7 +48,7 @@ class File(models.Model):
     # is_fav = models.BooleanField(default=False)
 
     class Meta:
-        db_table = 'File'
+        db_table = 'file'
 
     def __unicode__(self):
         return 'file_name:%s' % self.file_name

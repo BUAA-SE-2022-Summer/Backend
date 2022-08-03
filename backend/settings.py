@@ -173,8 +173,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'user.apps.UserConfig',
+    'project.apps.ProjectConfig',
+    # 'file.apps.FileConfig',
     'team',
-    'file'
+    'file',
 ]
 
 MIDDLEWARE = [
@@ -258,7 +260,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Shanghai'
 
 USE_I18N = True
 
