@@ -6,6 +6,7 @@ from user.models import User
 from team.models import Team
 from team.models import Team_User
 from django.shortcuts import render
+from file.models import File
 
 
 # Create your views here.
@@ -26,7 +27,14 @@ def create_project(request):
         new_project = Project(projectName=project_name, projectDesc=project_desc,
                               projectUser=user.userID, team=team)
         new_project.save()
-        return JsonResponse({'errno': 0, 'msg': '创建项目成功', 'projectID': new_project.projectID})
+
+        root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
+                         projectID=new_project.projectID)
+        root_file()
+        new_project.root_file = root_file
+        new_project.save()
+        return JsonResponse({'errno': 0, 'msg': '创建项目成功', 'projectID': new_project.projectID,
+                             'project_root_fileID': new_project.root_file.fileID})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 

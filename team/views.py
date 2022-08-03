@@ -42,7 +42,7 @@ def create_team(request):
                          'msg': "新建团队成功",
                          'teamID': new_team.teamID,
                          'create_time': new_team.create_time,
-                         'creator': manager})
+                         'creator': manager.username})
 
 
 @csrf_exempt

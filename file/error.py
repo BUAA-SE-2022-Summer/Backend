@@ -22,9 +22,4 @@ def name_duplicate_err(file_type, file_name):
     return JsonResponse({'errno': 3098, 'msg': '已存在名为' + file_name + '的'+error_type})
 
 
-def base_err_check(request):
-    if request.method != 'POST':
-        return method_err()
-    if not login_check(request):
-        return not_login_err()
 

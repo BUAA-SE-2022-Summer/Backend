@@ -1,7 +1,8 @@
 from django.db import models
 from user.models import User
 from team.models import Team
-from project.models import Project
+# from project.models import Project
+
 
 # Create your models here.
 
@@ -10,7 +11,7 @@ class File(models.Model):
     fileID = models.AutoField(primary_key=True, editable=False, null=False)
     file_name = models.CharField(max_length=100)
 
-    # projectID = 
+    projectID = models.IntegerField(default=0, null=False)
     # isDir = models.BooleanField(null=False, default=False)
     file_type = models.CharField(null=False, default='doc', max_length=100)  # 用于标记文件类型 doc为普通文档,uml为uml图,dir为文件夹
 
@@ -27,6 +28,7 @@ class File(models.Model):
         # to_field='userID',
         on_delete=models.CASCADE,
         null=True,
+        blank=True
     )
     # team为文档所属的团队
     team = models.ForeignKey(
@@ -35,9 +37,10 @@ class File(models.Model):
         on_delete=models.CASCADE,
         blank=True, null=True
     )
+
     # 文档所属的项目
-    project = models.ForeignKey(Project, on_delete=models.CASCADE,
-                                null=False)
+    # project = models.ForeignKey(project.Project, on_delete=models.CASCADE,
+    #                             null=False)
 
     # team_perm = models.IntegerField(default=0)
 
