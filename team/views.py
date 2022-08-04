@@ -1,7 +1,14 @@
+from pathlib import Path
+
+from django import http
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.shortcuts import render
+# from itsdangerous import Serializer
+# from itsdangerous import Serializer
+from django.template import loader
 
 from backend import settings
+from backend.settings import SECRET_KEY
 from .error import *
 # from ..myUtils.utils import *
 from .models import Team, Team_User
@@ -10,11 +17,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import *
 from django.core.mail import *
 
+from itsdangerous import URLSafeTimedSerializer, BadData
+from django.core.mail import EmailMultiAlternatives
+import os
+
+# from itsdangerous import TimedJSONWebSignatureSerializer as TJWSSerializer
+
 
 # from .email import *
 
 
 # Create your views here.
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 
 def login_check(request):
@@ -52,6 +66,24 @@ def create_team(request):
                          'creator': manager.username})
 
 
+def generate_verify_url(user, team, invitor):
+    # serializer = Serializer(SECRET_KEY)
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    data = {'userID': user.userID, 'email': user.email, 'teamID': team.teamID, 'invitorID': invitor.userID}
+    token = serializer.dumps(data).encode().decode()
+    verify_url = settings.EMAIL_INVITATION_URL + '?token=' + token
+    return verify_url
+
+
+def generate_html_message(verify_url, username, invitor_name, team_name):
+    html_message = '<p>尊敬的用户%s您好！</p>' \
+                   '<p>墨书用户%s邀请您加入团队%s</p>' \
+                   '<p>点击以下链接可接受邀请</p>' \
+                   '<p><a href="%s">%s<a></p>' % (
+                       username, invitor_name, team_name, verify_url, verify_url)  # verify_url是验证路由
+    return html_message
+
+
 @csrf_exempt
 def invite_member(request):
     if request.method != 'POST':
@@ -78,19 +110,130 @@ def invite_member(request):
         return JsonResponse({'errno': 2093, 'msg': "团队不存在"})
     except MultipleObjectsReturned:
         return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
+
     is_manager_re = Team_User.objects.filter(team=team, user=User.objects.get(userID=userID), is_supervisor=True)
     if len(is_manager_re) == 0:
         return JsonResponse({'errno': 2093, 'msg': "您不具备该团队的管理员权限"})
     relation = Team_User.objects.filter(team=team, user=target_user)
     if len(relation) != 0:
         return JsonResponse({'errno': 2091, 'msg': "您邀请的用户已在团队中"})
+    user = User.objects.get(userID=userID)
 
-    send_mail(subject='来自墨书的邀请函', message='Hello, ' + target_username, from_email=settings.EMAIL_FROM,
-              recipient_list=[target_user.email], html_message='<a>hello</a>')
+    verify_url = generate_verify_url(target_user, team, user)
+    # html = generate_html_message(verify_url, target_username, user.username, team.team_name)
+
+    context = {'invitor_name': str(user.username),
+               'team_name': str(team.team_name),
+               'verify_url': str(verify_url)}
+    # t_path = os.path.join(BASE_DIR, 'team/../templates/invitation_format.html')
+    t = loader.get_template('invitation_format.html')
+    html_content = t.render(context)
+    msg = EmailMultiAlternatives('来自墨书的邀请函', html_content, settings.EMAIL_FROM, [target_user.email])
+    msg.attach_alternative(html_content, "text/html")
+    msg.send()
+    # send_mail(subject='来自墨书的邀请函', message='Hello, ' + target_username, from_email=settings.EMAIL_FROM,
+    #           recipient_list=[target_user.email], html_message=html)
 
     # new_relation = Team_User(team=team, user=target_user, is_supervisor=False, is_creator=False)
     # new_relation.save()
-    return JsonResponse({'errno': 0, 'msg': "已向用户"+target_username+"发送邀请邮件"})
+    return JsonResponse({'errno': 0, 'msg': "已向用户" + target_username + "发送邀请邮件"})
+
+
+def check_invitation_token(token):
+    serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+    try:
+        data = serializer.loads(token)
+    except BadData:
+        return None
+    else:
+        userID = data.get('userID')
+        email = data.get('email')
+        teamID = data.get('teamID')
+        invitorID = data.get('invitorID')
+        try:
+            user = User.objects.get(userID=userID, email=email)
+            team = Team.objects.get(teamID=teamID)
+            invitor = User.objects.get(userID=invitorID)
+        except User.DoesNotExist:
+            return None
+        except Team.DoesNotExist:
+            return None
+        else:
+            return user, team, invitor
+
+
+@csrf_exempt
+def confirm_invitation(request):
+    if request.method != 'GET':
+        method_err()
+    # if login_check(request):
+    #     userID = request.session['userID']
+    #     cur_user = User.objects.get(userID=userID)
+    token = request.GET.get('token')
+    # password = request.GET.get('password')
+    # accept = request.GET.get('accept')
+
+    if not token:
+        return JsonResponse({'errno': 2085, 'msg': "无法获取token信息"})
+        # return http.HttpResponseBadRequest('无法获取token信息')
+    user, team, invitor = check_invitation_token(token)
+    if not user:
+        # return http.HttpResponseBadRequest('无法获取用户信息')
+        return JsonResponse({'errno': 2095, 'msg': "无法获取用户信息"})
+
+    if not team:
+        # return http.HttpResponseBadRequest('无法获取团队信息')
+        return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
+    if not invitor:
+        return JsonResponse({'errno': 2084, 'msg': "无法获取邀请人信息"})
+    # if password != user.password:
+    #     JsonResponse({'errno': 2087, 'msg': "密码错误"})
+    # if not accept:
+    #     html = '<p>尊敬的墨书用户%s您好！</p>' \
+    #            '<p>您向墨书用户%s发出的团队邀请被拒绝</p>' % (invitor.username, user.username)
+    #     send_mail(subject='来自墨书的消息', message='Hello, ' + invitor.username, from_email=settings.EMAIL_FROM,
+    #               recipient_list=[invitor.email],
+    #               html_message=html)
+    #     JsonResponse({'errno': 0, 'msg': "您已拒绝邀请"})
+
+    # new_relation = Team_User(team=team, user=user, is_creator=False, is_supervisor=False)
+    # new_relation.save()
+
+    return JsonResponse({'errno': 0,
+                         'msg': "token解析成功",
+                         'teamID': team.teamID,
+                         'invitorID': invitor.userID,
+                         'userID': user.userID})
+
+
+@csrf_exempt
+def accept_invitation(request):
+    if request.method != 'POST':
+        return method_err()
+    # if not login_check(request):
+    #     return not_login_err()
+    try:
+        token = request.POST.get('token')
+        # password = request.POST.get('password')
+    except ValueError:
+        return JsonResponse({'errno': 2096, 'msg': "信息获取失败"})
+    user, team, invitor = check_invitation_token(token)
+    if not user:
+        # return http.HttpResponseBadRequest('无法获取用户信息')
+        return JsonResponse({'errno': 2095, 'msg': "无法获取用户信息"})
+    if not team:
+        # return http.HttpResponseBadRequest('无法获取团队信息')
+        return JsonResponse({'errno': 2092, 'msg': "无法获取团队信息"})
+    if not invitor:
+        return JsonResponse({'errno': 2086, 'msg': "无法获取邀请者信息"})
+    # if password != user.password:
+    #     JsonResponse({'errno': 2087, 'msg': "密码错误"})
+    re_check = Team_User.objects.filter(team=team, user=user)
+    if len(re_check) != 0:
+        return JsonResponse({'errno': 2084, 'msg': "您已是团队" + team.team_name + '的成员'})
+    new_relation = Team_User(team=team, user=user, is_creator=False, is_supervisor=False)
+    new_relation.save()
+    return JsonResponse({'errno': 0, 'msg': "您已成功加入团队" + team.team_name})
 
 
 @csrf_exempt

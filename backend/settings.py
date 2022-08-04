@@ -55,14 +55,14 @@
 # 
 # TEMPLATES = [
 #     {
-#         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+#         'BACKEND': 'django.templates.backends.django.DjangoTemplates',
 #         'DIRS': [BASE_DIR / 'templates']
 #         ,
 #         'APP_DIRS': True,
 #         'OPTIONS': {
 #             'context_processors': [
-#                 'django.template.context_processors.debug',
-#                 'django.template.context_processors.request',
+#                 'django.templates.context_processors.debug',
+#                 'django.templates.context_processors.request',
 #                 'django.contrib.auth.context_processors.auth',
 #                 'django.contrib.messages.context_processors.messages',
 #             ],
@@ -285,3 +285,4 @@ EMAIL_PORT = 25  # 发邮件端口
 EMAIL_HOST_USER = 'mobook@horik.cn'  # 授权的邮箱
 EMAIL_HOST_PASSWORD = '2022LiverTeam'  # 邮箱授权时获得的密码，非注册登录密码
 EMAIL_FROM = '墨书<mobook@horik.cn>'  # 发件人抬头
+EMAIL_INVITATION_URL = 'http://127.0.0.1:8000/api/team/confirm_invitation'
