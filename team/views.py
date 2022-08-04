@@ -1,5 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.shortcuts import render
+
+from backend import settings
 from .error import *
 # from ..myUtils.utils import *
 from .models import Team, Team_User
@@ -7,7 +9,9 @@ from user.models import User
 from django.views.decorators.csrf import csrf_exempt
 from django.db import *
 from django.core.mail import *
-from .email import *
+
+
+# from .email import *
 
 
 # Create your views here.
@@ -81,11 +85,12 @@ def invite_member(request):
     if len(relation) != 0:
         return JsonResponse({'errno': 2091, 'msg': "您邀请的用户已在团队中"})
 
-    # send_mail(subject='来自墨书的邀请函', message='Hello, ' + target_username, from_email=EMAIL_FROM,recipient_list=target_user.email )
+    send_mail(subject='来自墨书的邀请函', message='Hello, ' + target_username, from_email=settings.EMAIL_FROM,
+              recipient_list=[target_user.email], html_message='<a>hello</a>')
 
-    new_relation = Team_User(team=team, user=target_user, is_supervisor=False, is_creator=False)
-    new_relation.save()
-    return JsonResponse({'errno': 0, 'msg': "邀请成功"})
+    # new_relation = Team_User(team=team, user=target_user, is_supervisor=False, is_creator=False)
+    # new_relation.save()
+    return JsonResponse({'errno': 0, 'msg': "已向用户"+target_username+"发送邀请邮件"})
 
 
 @csrf_exempt

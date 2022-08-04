@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 cf = configparser.ConfigParser()
 cf.read(os.path.join(BASE_DIR, 'Config/django.conf'))
