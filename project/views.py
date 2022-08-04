@@ -158,6 +158,7 @@ def get_project_list(request):
                 'projectUser': project.projectUser,
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
+                'project_root_fileID': project.root_file.fileID
             })
         return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
     else:
