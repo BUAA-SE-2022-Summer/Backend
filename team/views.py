@@ -164,12 +164,12 @@ def check_invitation_token(token):
 
 @csrf_exempt
 def confirm_invitation(request):
-    if request.method != 'GET':
+    if request.method != 'POST':
         method_err()
     # if login_check(request):
     #     userID = request.session['userID']
     #     cur_user = User.objects.get(userID=userID)
-    token = request.GET.get('token')
+    token = request.POST.get('token')
     # password = request.GET.get('password')
     # accept = request.GET.get('accept')
 
