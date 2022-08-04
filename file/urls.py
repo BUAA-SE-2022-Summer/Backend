@@ -1,6 +1,7 @@
 # user/urls.py
 from django.urls import path
 from . import views
+from django.urls import path
 
 urlpatterns = [
     # path('create_team', views.create_team),
