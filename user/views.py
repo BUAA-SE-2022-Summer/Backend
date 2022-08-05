@@ -27,6 +27,8 @@ def check_pwd(pwd):
         return 11
     r = [False] * 4
     for ch in pwd:
+        if ch is ' ':
+            return 15
         if not r[0] and ch in digits:
             r[0] = True
         elif not r[1] and ch in ascii_lowercase:
@@ -90,6 +92,7 @@ def login(request):
             return JsonResponse({'errno': 1, 'msg': '昵称不能为空'})
         if password == '':
             return JsonResponse({'errno': 2, 'msg': '密码不能为空'})
+        print(username, password)
         try:
             user = User.objects.get(username=username)
         except ObjectDoesNotExist:
@@ -144,6 +147,8 @@ def register(request):
             return JsonResponse({'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'})
         if num == 14:
             return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
+        if num == 15:
+            return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
         new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
         if num == 3:
@@ -211,6 +216,8 @@ def update_user_info(request):
             return JsonResponse({'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'})
         if num == 14:
             return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
+        if num == 15:
+            return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
         user.username = username
         user.password = password
         user.real_name = real_name
