@@ -202,8 +202,13 @@ def confirm_invitation(request):
     return JsonResponse({'errno': 0,
                          'msg': "token解析成功",
                          'teamID': team.teamID,
+                         'team_name': team.team_name,
                          'invitorID': invitor.userID,
-                         'userID': user.userID})
+                         'invitor_name': invitor.username,
+                         'invitor_avatar': invitor.img,
+                         'userID': user.userID,
+                         'username': user.username,
+                         'user_avatar': user.img})
 
 
 @csrf_exempt

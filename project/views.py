@@ -29,12 +29,12 @@ def create_project(request):
         new_project.save()
 
         root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
-                         projectID=new_project.projectID)
+                         project_id=new_project.projectID)
         root_file.save()
-        new_project.root_file = root_file
+        new_project.root_file_id = root_file.fileID
         new_project.save()
         return JsonResponse({'errno': 0, 'msg': '创建项目成功', 'projectID': new_project.projectID,
-                             'project_root_fileID': new_project.root_file.fileID})
+                             'project_root_fileID': root_file.fileID})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
@@ -158,7 +158,7 @@ def get_project_list(request):
                 'projectUser': project.projectUser,
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
-                'project_root_fileID': project.root_file.fileID
+                'project_root_fileID': project.root_file_id  # .fileID
             })
         return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
     else:

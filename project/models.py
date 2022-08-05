@@ -1,6 +1,8 @@
 from django.db import models
 from team.models import Team
-from file.models import File
+
+
+# from file.models import File
 
 
 # Create your models here.
@@ -14,7 +16,8 @@ class Project(models.Model):
     is_star = models.BooleanField(verbose_name='是否收藏', default=False)
     is_delete = models.BooleanField(verbose_name='是否删除', default=False)
     team = models.ForeignKey(Team, on_delete=models.CASCADE)
-    root_file = models.ForeignKey(File, on_delete=models.CASCADE, null=True, blank=True)
+    root_file = models.ForeignKey('file.File', on_delete=models.CASCADE, null=True, blank=True,
+                                  related_name='project_root')
 
     class Meta:
         db_table = 'project'
