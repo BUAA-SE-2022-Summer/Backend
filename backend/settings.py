@@ -294,5 +294,6 @@ EMAIL_PORT = 80  # 发邮件端口
 EMAIL_HOST_USER = 'mobook@horik.cn'  # 授权的邮箱
 EMAIL_HOST_PASSWORD = '2022LiverTeam'  # 邮箱授权时获得的密码，非注册登录密码
 EMAIL_FROM = '墨书<mobook@horik.cn>'  # 发件人抬头
-EMAIL_INVITATION_URL = 'http://123.57.69.30/email'
+# EMAIL_INVITATION_URL = 'http://123.57.69.30/email'
+EMAIL_INVITATION_URL = 'http://123.57.69.30/app/web/email'
 ASGI_APPLICATION = 'backend.routing.application'
