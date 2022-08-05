@@ -30,7 +30,7 @@ def create_project(request):
 
         root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
                          projectID=new_project.projectID)
-        root_file()
+        root_file.save()
         new_project.root_file = root_file
         new_project.save()
         return JsonResponse({'errno': 0, 'msg': '创建项目成功', 'projectID': new_project.projectID,

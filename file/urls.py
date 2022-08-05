@@ -11,5 +11,5 @@ urlpatterns = [
     path('restore_file', views.restore_file),
     path('project_root_filelist', views.project_root_filelist),
     path('get_dir_list', views.get_dir_list),
-    path('delete_filelist',views.delete_filelist_in_project)
+    path('delete_filelist', views.delete_filelist_in_project)
 ]
