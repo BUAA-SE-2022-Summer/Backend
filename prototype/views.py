@@ -34,7 +34,7 @@ def create_prototype(request):
         if prototypeName == '':
             return JsonResponse({'errno': 3, 'msg': '原型名称不能为空'})
         try:
-            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, projectID=projectID)
+            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project_id=projectID)
         except ObjectDoesNotExist:
             return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
         except MultipleObjectsReturned:
@@ -203,3 +203,22 @@ def delete_page(request):
                              'first_canvasStyle': first_page.pageCanvasStyle
                              })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+def get_prototype_list(fatherID, projectID, allow_del, user, is_personal):
+    res = []
+    if is_personal:
+        prototype_list = Prototype.objects.filter(fatherID=fatherID, projectID=projectID, prototypeUser=user)
+    else:
+        prototype_list = Prototype.objects.filter(fatherID=fatherID, projectID=projectID)
+    for i in prototype_list:
+        if not (i.is_delete and not allow_del):
+            # author = User.objects.get(userID=i.prototypeUser)
+            res.append({
+                'fileID': i.prototypeID,
+                'file_name': i.prototypeName,
+                'create_time': i.create_time,
+                'last_modify_time': i.last_modify_time,
+                'file_type': 'pro'
+            })
+    return res

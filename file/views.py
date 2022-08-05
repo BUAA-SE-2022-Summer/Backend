@@ -1,12 +1,15 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.db import *
+
+from prototype.models import Prototype
 from user.models import User
 from project.models import Project
 from team.models import Team, Team_User
 from .models import File
 from .error import *
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from prototype.views import get_prototype_list
 
 
 # Create your views here.
@@ -264,6 +267,23 @@ def acquire_file_list(dirID, projectID, allow_del, user, is_personal):
                         'create_time': i.create_time,
                         'last_modify_time': i.last_modify_time,
                         'file_type': i.file_type})
+
+    proto_list = get_prototype_list(dirID, projectID, allow_del, user, is_personal)
+    res.extend(proto_list)
+    # if is_personal:
+    #     prototype_list = Prototype.objects.filter(fatherID=dirID, projectID=projectID)  # , prototypeUser=user)
+    # else:
+    #     prototype_list = Prototype.objects.filter(fatherID=dirID, projectID=projectID)
+    # for j in prototype_list:
+    #     if not (j.is_delete and not allow_del):
+    #         # author = User.objects.get(userID=i.prototypeUser)
+    #         res.append({
+    #             'fileID': j.prototypeID,
+    #             'file_name': j.prototypeName,
+    #             'create_time': j.create_time,
+    #             'last_modify_time': j.last_modify_time,
+    #             'file_type': 'proto'
+    #         })
     return res
 
 
