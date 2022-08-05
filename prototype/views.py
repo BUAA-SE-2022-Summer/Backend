@@ -29,12 +29,13 @@ def create_prototype(request):
             return JsonResponse({'errno': 2, 'msg': "信息获取失败"})
         team = Team.objects.get(teamID=teamID)
         users = Team_User.objects.filter(user=user, team=team)
+        project = Project.objects.get(projectID=projectID)
         if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限创建原型图'})
         if prototypeName == '':
             return JsonResponse({'errno': 3, 'msg': '原型名称不能为空'})
         try:
-            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, projectID=projectID)
+            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project=project)
         except ObjectDoesNotExist:
             return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
         except MultipleObjectsReturned:
