@@ -863,7 +863,9 @@
   ```json
   {
       'teamID':xxx,
-  	'prototypeName':xxx
+  	'prototypeName':xxx,
+      'fatherID':xxx,
+      'projectID':xxx
   }
   ```
 
@@ -872,11 +874,18 @@
   ```json
   {'errno': 0, 'msg': '创建成功', 'data': datalist}
   datalist = {
-      'prototypeID': xxx, 
+      'errno': 0,
+      'msg': '创建成功',
+      'prototypeID': xxx,
       'prototypeName': xxx,
-      'pageID': xxx, 
+      'create_time': xxx,
+      'last_modify_time': xxx,
+      'author': xxx,
+      'file_type': xxx,
+      'pageID': xxx,
       'pageName': xxx,
-      'pageComponentData': xxx
+      'pageComponentData': xxx,
+      'pageCanvasStyle': xxx
   }
   ```
 
@@ -926,9 +935,10 @@
 
   ```json
   {
-      'errno': 0, 
-   	'msg': '创建成功', 
-   	'pageID': xxx
+      'errno': 0,
+      'msg': '创建成功',
+      'pageID': new_page.pageID,
+      'pageName': pageName
   }
   ```
 
@@ -977,21 +987,20 @@
 
   ```json
   {
-      'errno': 0, 
-      'msg': '打开成功', 
-      'data': {
-          'namelist': [
-              {
-                  'pageID': xxx, 
-                  'pageName': xxx
-              }
-              ……
-          ],
-          'first_component': "[{xxx},……]"
-      }
+      'errno': 0,
+      'msg': '打开成功',
+      'namelist': [
+          {
+          'pageID': xxx, 
+          'pageName': xxx
+          }
+          ……
+      ],
+      'first_component': xxx,
+      'first_canvasStyle': xxx
   }
   ```
-
+  
 - 错误提示
 
   - 没有权限
@@ -1024,7 +1033,8 @@
   {
       'teamID':xxx,
       'prototypeID':xxx,
-      'pageID':xxx
+      'pageID':xxx,
+      
   }
   ```
 
@@ -1034,7 +1044,8 @@
   {
       'errno': 0, 
       'msg': '更改成功', 
-      'componentData': "[{xxx},……]"
+      'componentData': "[{xxx},……]",
+      'canvasStyle': xxx
   }
   ```
 
@@ -1071,7 +1082,8 @@
       'teamID':xxx,
       'prototypeID':xxx,
       'pageID':xxx,
-      'pageComponentData':[{xxx},……]
+      'pageComponentData':[{xxx},……],
+      'pageCanvasStyle':xxx
   }
   ```
 
@@ -1079,9 +1091,11 @@
 
   ```json
   {
-      'errno': 0, 
-      'msg': '更改成功', 
-      'componentData': "[{xxx},……]"
+  	'errno': 0,
+      'msg': '更改成功',
+      'componentData': xxx,
+      'canvasStyle': xxx,
+  
   }
   ```
 
@@ -1125,21 +1139,20 @@
 
   ```json
   {
-      'errno': 0, 
-      'msg': '删除成功', 
-      'data': {
-          'namelist': [
-              {
-                  'pageID': xxx, 
-                  'pageName': xxx
-              }
-              ……
-          ],
-          'first_component': "[{xxx},……]"
-      }
+      'errno': 0,
+      'msg': '删除成功',
+      'namelist': [
+          {
+          'pageID': xxx, 
+          'pageName': xxx
+          }
+          ……
+      ],
+      'first_component': xxx,
+      'first_canvasStyle': xxx
   }
   ```
-
+  
 - 错误提示
 
   - 没有权限

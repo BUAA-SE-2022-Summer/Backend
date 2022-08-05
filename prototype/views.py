@@ -1,10 +1,11 @@
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from project.models import Project
 from user.models import User
 from team.models import Team
 from team.models import Team_User
+from file.models import File
 from prototype.models import Prototype
 from prototype.models import Page
 from django.shortcuts import render
@@ -19,22 +20,43 @@ def create_prototype(request):
             return JsonResponse({'errno': 1002, 'msg': "未登录不能创建原型图"})
         userID = request.session['userID']
         user = User.objects.get(userID=userID)
-        teamID = request.POST.get('teamID', '')
+        try:
+            teamID = request.POST.get('teamID')
+            projectID = request.POST.get('projectID')
+            fatherID = request.POST.get('fatherID')
+            prototypeName = request.POST.get('prototypeName')
+        except ValueError:
+            return JsonResponse({'errno': 2, 'msg': "信息获取失败"})
         team = Team.objects.get(teamID=teamID)
         users = Team_User.objects.filter(user=user, team=team)
         if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限创建原型图'})
-        prototypeName = request.POST.get('prototypeName', '')
         if prototypeName == '':
-            return JsonResponse({'errno': 2, 'msg': '原型名称不能为空'})
-        new_prototype = Prototype(prototypeName=prototypeName, prototypeUser=userID)
+            return JsonResponse({'errno': 3, 'msg': '原型名称不能为空'})
+        try:
+            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, projectID=projectID)
+        except ObjectDoesNotExist:
+            return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
+        except MultipleObjectsReturned:
+            return JsonResponse({'errno': 3096, 'msg': "父文件夹错误"})
+        new_prototype = Prototype(prototypeName=prototypeName, prototypeUser=userID, fatherID=fatherID,
+                                  team=team, projectID=projectID)
         new_page = Page(pageName='首页', pageUser=userID, is_first=True, prototype=new_prototype)
         new_prototype.save()
         new_page.save()
-        datalist = {'prototypeID': new_prototype.prototypeID, 'prototypeName': new_prototype.prototypeName,
-                    'pageID': new_page.pageID, 'pageName': new_page.pageName,
-                    'pageComponentData': new_page.pageComponentData}
-        return JsonResponse({'errno': 0, 'msg': '创建成功', 'data': datalist})
+        return JsonResponse({'errno': 0,
+                             'msg': '创建成功',
+                             'prototypeID': new_prototype.prototypeID,
+                             'prototypeName': new_prototype.prototypeName,
+                             'create_time': new_prototype.create_time,
+                             'last_modify_time': new_prototype.last_modify_time,
+                             'author': user.username,
+                             'file_type': new_prototype.file_type,
+                             'pageID': new_page.pageID,
+                             'pageName': new_page.pageName,
+                             'pageComponentData': new_page.pageComponentData,
+                             'pageCanvasStyle': new_page.pageCanvasStyle
+                             })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
@@ -57,7 +79,11 @@ def create_page(request):
             return JsonResponse({'errno': 2, 'msg': '页面名称不能为空'})
         new_page = Page(pageName=pageName, pageUser=userID, prototype=prototype)
         new_page.save()
-        return JsonResponse({'errno': 0, 'msg': '创建成功', 'pageID': new_page.pageID})
+        return JsonResponse({'errno': 0,
+                             'msg': '创建成功',
+                             'pageID': new_page.pageID,
+                             'pageName': pageName
+                             })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
@@ -80,8 +106,12 @@ def open_prototype(request):
         for page in pages:
             namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
         first_page = Page.objects.get(prototype=prototype, is_first=True)
-        datalist = {'namelist': namelist, 'first_component': first_page.pageComponentData}
-        return JsonResponse({'errno': 0, 'msg': '打开成功', 'data': datalist})
+        return JsonResponse({'errno': 0,
+                             'msg': '打开成功',
+                             'namelist': namelist,
+                             'first_component': first_page.pageComponentData,
+                             'first_canvasStyle': first_page.pageCanvasStyle,
+                             })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
@@ -102,12 +132,11 @@ def change_page(request):
         pageID = request.POST.get('pageID', '')
         page = Page.objects.get(pageID=pageID, prototype=prototype)
         componentData = page.pageComponentData
-        # test = []
-        # a = {"component": "v-text", "label": "文字", "propValue": "文字", "icon": "el-icon-edit", "animations": [],
-        #      "events": {}, "style": {"width": 200, "height": 33, "fontSize": 14}}
-        # test.append(a)
-        # print(test)
-        return JsonResponse({'errno': 0, 'msg': '更改成功', 'componentData': componentData})
+        return JsonResponse({'errno': 0,
+                             'msg': '更改成功',
+                             'componentData': componentData,
+                             'canvasStyle': page.pageCanvasStyle,
+                             })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
@@ -128,9 +157,15 @@ def update_page(request):
         pageID = request.POST.get('pageID', '')
         page = Page.objects.get(pageID=pageID, prototype=prototype)
         pageComponentData = request.POST.get('pageComponentData', '')
+        pageCanvasStyle = request.POST.get('pageCanvasStyle', '')
         page.pageComponentData = pageComponentData
+        page.pageCanvasStyle = pageCanvasStyle
         page.save()
-        return JsonResponse({'errno': 0, 'msg': '更改成功', 'componentData': pageComponentData})
+        return JsonResponse({'errno': 0,
+                             'msg': '更改成功',
+                             'componentData': pageComponentData,
+                             'canvasStyle': pageCanvasStyle,
+                             })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
@@ -161,6 +196,10 @@ def delete_page(request):
         for page in pages:
             namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
         first_page = Page.objects.get(prototype=prototype, is_first=True)
-        datalist = {'namelist': namelist, 'first_component': first_page.pageComponentData}
-        return JsonResponse({'errno': 0, 'msg': '删除成功', 'data': datalist})
+        return JsonResponse({'errno': 0,
+                             'msg': '删除成功',
+                             'namelist': namelist,
+                             'first_component': first_page.pageComponentData,
+                             'first_canvasStyle': first_page.pageCanvasStyle
+                             })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
