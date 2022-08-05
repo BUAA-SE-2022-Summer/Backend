@@ -142,6 +142,35 @@ def change_page(request):
 
 
 @csrf_exempt
+def change_page_name(request):
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能更改页面名称"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限更改页面名称'})
+        prototypeID = request.POST.get('prototypeID', '')
+        prototype = Prototype.objects.get(prototypeID=prototypeID)
+        pageID = request.POST.get('pageID', '')
+        page = Page.objects.get(pageID=pageID, prototype=prototype)
+        pageName = request.POST.get('pageName', '')
+        if pageName == '':
+            return JsonResponse({'errno': 2, 'msg': '页面名称不能为空'})
+        page.pageName = pageName
+        page.save()
+        return JsonResponse({'errno': 0,
+                             'msg': '更改成功',
+                             'pageID': page.pageID,
+                             'pageName': pageName
+                             })
+    return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
 def update_page(request):
     if request.method == 'POST':
         if not login_check(request):

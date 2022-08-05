@@ -23,12 +23,10 @@
 - 后端response:
 
   ```json
-  {
-  'errno': 0, 
-  'msg': "注册成功",
-  }
+  {'errno': 0, 'msg': '注册成功', 'level': 'above middle'}
+  {'errno': 200, 'msg': "注册成功", 'level': 'strong'}
   ```
-
+  
 - 错误提示
 
   - 昵称为空
@@ -77,6 +75,15 @@
   
     ```json
     {'errno': 8, 'msg': '两次密码不一致'}
+    ```
+    
+  - 密码校验
+  
+    ```json
+    {'errno': 11, 'msg': '密码长度不能小于8位'}
+    {'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'}
+    {'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'}
+    {'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'}
     ```
     
   - 请求方式错误
@@ -236,7 +243,8 @@
 - 后端response:
 
   ```json
-  {'errno': 0, 'msg': "修改用户信息成功"}
+  {'errno': 0, 'msg': '修改用户信息成功', 'level': 'above middle'}
+  {'errno': 200, 'msg': "修改用户信息成功", 'level': 'strong'}
   ```
 
 - 错误提示
@@ -263,6 +271,15 @@
   
     ```json
     {'errno': 4, 'msg': '密码不能为空'}
+    ```
+  
+  - 密码校验
+  
+    ```json
+    {'errno': 11, 'msg': '密码长度不能小于8位'}
+    {'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'}
+    {'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'}
+    {'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'}
     ```
   
   - 请求方式错误
@@ -1067,6 +1084,60 @@
 
     ```json
     {'errno': 1002, 'msg': "未登录不能更改页面"}
+    ```
+
+#### change_page_name(切换页面)
+
+- 路由：/api/prototype/change_page_name
+
+- 请求方式：POST
+
+- 前端request格式：
+
+  ```json
+  {
+      'teamID':xxx,
+      'prototypeID':xxx,
+      'pageID':xxx,
+      'pageName':xxx
+  }
+  ```
+
+- 后端response:
+
+  ```json
+  {
+      'errno': 0, 
+      'msg': '更改成功',
+      'pageID': page.pageID,
+      'pageName': pageName
+  }
+  ```
+
+- 错误提示
+
+  - 没有权限
+
+    ```json
+    {'errno': 1, 'msg': '没有权限更改页面名称'}
+    ```
+
+  - 页面名称为空
+
+    ```json
+    {'errno': 2, 'msg': '页面名称不能为空'}
+    ```
+
+  - 请求方式错误
+
+    ```json
+    {'errno': 10, 'msg': "请求方式错误"}
+    ```
+
+  - 用户未登录
+
+    ```json
+    {'errno': 1002, 'msg': "未登录不能更改页面名称"}
     ```
 
 #### update_page(更改页面)

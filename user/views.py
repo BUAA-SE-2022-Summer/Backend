@@ -8,7 +8,7 @@ import configparser
 import os
 from pathlib import Path
 import re
-
+from string import digits, ascii_lowercase, ascii_uppercase
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 cf = configparser.ConfigParser()
@@ -20,6 +20,29 @@ auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
 endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
 bucket = oss2.Bucket(auth, endpoint, 'xuemolan')
 base_image_url = 'https://xuemolan.oss-cn-hangzhou.aliyuncs.com/'
+
+
+def check_pwd(pwd):
+    if not isinstance(pwd, str) or len(pwd) < 8:
+        return 11
+    r = [False] * 4
+    for ch in pwd:
+        if not r[0] and ch in digits:
+            r[0] = True
+        elif not r[1] and ch in ascii_lowercase:
+            r[1] = True
+        elif not r[2] and ch in ascii_uppercase:
+            r[2] = True
+        elif not r[3] and ch in ',<.>/?!;:[]{}()*&^%$#@~`':
+            r[3] = True
+    if r.count(True) < 3:
+        if r.count(True) == 0:
+            return 12
+        if r.count(True) == 1:
+            return 13
+        if r.count(True) == 2:
+            return 14
+    return r.count(True)
 
 
 def validate_phone(phone):
@@ -112,9 +135,20 @@ def register(request):
             return JsonResponse({'errno': 7, 'msg': "昵称已存在"})
         if password != password_confirm:
             return JsonResponse({'errno': 8, 'msg': '两次密码不一致'})
+        num = check_pwd(password)
+        if num == 11:
+            return JsonResponse({'errno': 11, 'msg': '密码长度不能小于8位'})
+        if num == 12:
+            return JsonResponse({'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'})
+        if num == 13:
+            return JsonResponse({'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'})
+        if num == 14:
+            return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
         new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
-        return JsonResponse({'errno': 0, 'msg': "注册成功"})
+        if num == 3:
+            return JsonResponse({'errno': 0, 'msg': '注册成功', 'level': 'above middle'})
+        return JsonResponse({'errno': 200, 'msg': "注册成功", 'level': 'strong'})
     else:
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
 
@@ -168,6 +202,15 @@ def update_user_info(request):
             return JsonResponse({'errno': 1, 'msg': '邮箱格式错误'})
         if phone != '' and not validate_phone(phone):
             return JsonResponse({'errno': 2, 'msg': '手机号格式错误'})
+        num = check_pwd(password)
+        if num == 11:
+            return JsonResponse({'errno': 11, 'msg': '密码长度不能小于8位'})
+        if num == 12:
+            return JsonResponse({'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'})
+        if num == 13:
+            return JsonResponse({'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'})
+        if num == 14:
+            return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
         user.username = username
         user.password = password
         user.real_name = real_name
@@ -175,7 +218,9 @@ def update_user_info(request):
         user.phone = phone
         user.profile = profile
         user.save()
-        return JsonResponse({'errno': 0, 'msg': "修改用户信息成功"})
+        if num == 3:
+            return JsonResponse({'errno': 0, 'msg': '修改用户信息成功', 'level': 'above middle'})
+        return JsonResponse({'errno': 200, 'msg': "修改用户信息成功", 'level': 'strong'})
     else:
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
 
