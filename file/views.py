@@ -29,7 +29,7 @@ def base_err_check(request):
 
 def file_name_check(file_name, team, projectID, file_type, father_id):
     list = File.objects.filter(team=team,
-                               projectID=projectID,
+                               project_id=projectID,
                                file_type=file_type,
                                file_name=file_name,
                                isDelete=False,
