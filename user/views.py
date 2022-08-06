@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 from string import digits, ascii_lowercase, ascii_uppercase
+from myUtils.utils import  SHA256
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 cf = configparser.ConfigParser()
@@ -27,7 +28,7 @@ def check_pwd(pwd):
         return 11
     r = [False] * 4
     for ch in pwd:
-        if ch is ' ':
+        if ch == ' ':
             return 15
         if not r[0] and ch in digits:
             r[0] = True
@@ -86,6 +87,7 @@ login_dic = {}
 @csrf_exempt
 def login(request):
     if request.method == 'POST':
+        encoder = SHA256()
         username = request.POST.get('username', '')
         password = request.POST.get('password', '')
         if username == '':
@@ -97,7 +99,7 @@ def login(request):
             user = User.objects.get(username=username)
         except ObjectDoesNotExist:
             return JsonResponse({'errno': 1001, 'msg': '用户不存在'})
-        if user.password == password:
+        if user.password == encoder.hash(password):
             request.session['userID'] = user.userID
             login_dic[user.username] = request.session
             return JsonResponse({'errno': 0, 'msg': "登录成功"})
@@ -149,7 +151,9 @@ def register(request):
             return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
         if num == 15:
             return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
-        new_user = User(username=username, password=password, real_name=real_name, email=email, phone=phone, profile=profile)
+        encoder = SHA256()
+        hash_password = encoder.hash(password)
+        new_user = User(username=username, password=hash_password, real_name=real_name, email=email, phone=phone, profile=profile)
         new_user.save()
         if num == 3:
             return JsonResponse({'errno': 0, 'msg': '注册成功', 'level': 'above middle'})
@@ -199,6 +203,7 @@ def update_user_info(request):
         email = request.POST.get('email', '')
         phone = request.POST.get('phone', '')
         profile = request.POST.get('profile', '')
+        encoder = SHA256()
         if username == '':
             return JsonResponse({'errno': 3, 'msg': '昵称不能为空'})
         if password == '':
@@ -219,7 +224,7 @@ def update_user_info(request):
         if num == 15:
             return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
         user.username = username
-        user.password = password
+        user.password = encoder.hash(password)
         user.real_name = real_name
         user.email = email
         user.phone = phone
