@@ -63,6 +63,7 @@ def delete_project(request):
         if len(users) == 0:
             return JsonResponse({'errno': 1, 'msg': '没有权限删除该项目'})
         project.is_delete = True
+        project.is_edit = (project.is_edit + 1) % 2
         project.save()
         return JsonResponse({'errno': 0, 'msg': '删除项目成功'})
     else:
@@ -87,6 +88,7 @@ def star_project(request):
         if project.is_star is True:
             return JsonResponse({'errno': 2, 'msg': '该项目已经被收藏'})
         project.is_star = True
+        project.is_edit = (project.is_edit + 1) % 2
         project.save()
         return JsonResponse({'errno': 0, 'msg': '收藏项目成功'})
     else:
@@ -111,6 +113,7 @@ def unstar_project(request):
         if project.is_star is False:
             return JsonResponse({'errno': 2, 'msg': '该项目未被收藏'})
         project.is_star = False
+        project.is_edit = (project.is_edit + 1) % 2
         project.save()
         return JsonResponse({'errno': 0, 'msg': '取消收藏项目成功'})
     else:
@@ -136,6 +139,7 @@ def rename_project(request):
         if new_projectName == '':
             return JsonResponse({'errno': 2, 'msg': '项目名称不能为空'})
         project.projectName = new_projectName
+        project.is_edit = (project.is_edit + 1) % 2
         project.save()
         return JsonResponse({'errno': 0, 'msg': '修改项目名称成功'})
     else:
@@ -165,6 +169,7 @@ def get_project_list(request):
                 'projectImg': project.projectImg,
                 'projectUser': project.projectUser,
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'last_modify_time': project.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
                 'project_root_fileID': project.root_file_id  # .fileID
             })
@@ -196,6 +201,7 @@ def get_star_project_list(request):
                 'projectImg': project.projectImg,
                 'projectUser': project.projectUser,
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'last_modify_time': project.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
             })
         return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
@@ -226,6 +232,7 @@ def get_create_project_list(request):
                 'projectImg': project.projectImg,
                 'projectUser': project.projectUser,
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'last_modify_time': project.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
             })
         return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
@@ -256,6 +263,7 @@ def get_delete_project_list(request):
                 'projectImg': project.projectImg,
                 'projectUser': project.projectUser,
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
+                'last_modify_time': project.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
             })
         return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
@@ -307,6 +315,8 @@ def cancel_delete_project(request):
             project.save()
         except:
             return JsonResponse({'errno': 2, 'msg': '该项目不存在'})
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0, 'msg': '恢复项目成功'})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
@@ -322,6 +332,7 @@ def copy_project(request):
     user = User.objects.get(userID=userID)
     try:
         projectID = request.POST.get('projectID')
+        projectName = request.POST.get('projectName')
     except ValueError:
         return JsonResponse({'errno': 1, 'msg': "信息获取失败"})
     try:
@@ -332,6 +343,9 @@ def copy_project(request):
     user_perm_check = Team_User.objects.filter(user=user, team=team)
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3, 'msg': "您不是该团队的成员，无法查看"})
+    project = Project.objects.get(projectName=projectName)
+    if len(project) != 0:
+        return JsonResponse({'errno': 4, 'msg': "该项目已存在"})
     root_file = project.root_file
     root_fileID = root_file.fileID
     new_project = Project(projectName=project.projectName+'_copy', projectDesc=project.projectDesc, projectImg=project.projectImg,
@@ -343,7 +357,13 @@ def copy_project(request):
     new_project.root_file_id = new_root_file.fileID
     new_project.save()
     copy_dir_file(root_fileID, new_root_file.fileID, projectID, new_project.projectID)
-    return JsonResponse({'errno': 0, 'msg': '复制项目成功', 'projectID': new_project.projectID,
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
+    return JsonResponse({'errno': 0,
+                         'msg': '复制项目成功',
+                         'projectID': new_project.projectID,
+                         'projectName': new_project.projectName,
+                         'projectUser': new_project.projectUser,
                          'project_root_fileID': new_root_file.fileID})
 
 
