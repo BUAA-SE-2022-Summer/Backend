@@ -22,7 +22,7 @@ class File(models.Model):
     fatherID = models.IntegerField(default=0)
     content = models.TextField(max_length=65535, null=True)
     isDelete = models.BooleanField(default=False)  # If the file has been deleted, this value is True.
-
+    is_star = models.BooleanField(default=False)
     create_time = models.DateTimeField(auto_now_add=True)
     last_modify_time = models.DateTimeField(auto_now=True)
     # last_read_time = models.DateTimeField(auto_now_add=True)  # 上次访问时间，只在read_file的时候会更新

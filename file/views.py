@@ -40,6 +40,16 @@ def file_name_check(file_name, team, projectID, file_type, father_id):
     return len(f_list) == 0
 
 
+def file_name_check_in_team_scale(file_name, team, file_type, fatherID):
+    team_file_list = File.objects.get(team=team,
+                                      file_type=file_type,
+                                      file_name=file_name,
+                                      isDelete=False,
+                                      fatherID=fatherID,
+                                      project=None)
+    return len(team_file_list) == 0
+
+
 def get_user(request):
     userID = request.session['userID']
     user = User.objects.get(userID=userID)
@@ -334,6 +344,63 @@ def project_root_pro_list(request):
     return project_root_filelist(request, 'pro', '原型图')
 
 
+def get_team_dir(dirID, team):
+    sub_list = File.objects.filter(fatherID=dirID, isDelete=False, team=team)
+    r = []
+    for file in sub_list:
+        if file.file_type == 'dir':
+            r.append(get_team_dir(file.fileID, team))
+        else:
+            r.append({
+                'fileID': file.fileID,
+                'file_name': file.file_name,
+                'create_time': file.create_time,
+                'last_modify_time': file.last_modify_time,
+                'file_type': file.file_type
+            })
+    return r
+
+
+@csrf_exempt
+def get_file_centre_list(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        teamID = request.POST.get('teamID')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    team = Team.objects.get(teamID=teamID)
+    user_perm_check = Team_User.objects.filter(user=user, team=team)
+    if len(user_perm_check) == 0:
+        return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
+    res = []
+    project_list = Project.objects.filter(team=team)
+    for pro in project_list:
+        root_file = pro.root_file
+        root_fileID = root_file.fileID
+        res.append({
+            'projectID': pro.projectID,
+            'projectName': pro.projectName,
+            'children': acquire_file_list(root_fileID, pro.projectID, False, user, False, 'doc')
+        })
+    team_file_list = File.objects.filter(team=team, fatherID=0, isDelete=False)
+    for file in team_file_list:
+        if file.file_type == 'doc':
+            res.append({
+                'fileID': file.fileID,
+                'file_name': file.file_name,
+                'create_time': file.create_time,
+                'last_modify_time': file.last_modify_time,
+                'file_type': file.file_type
+            })
+        elif file.file_type == 'dir':
+            res.append(get_team_dir(file.fileID, team))
+    return JsonResponse({'errno': 0, 'msg': '团队文件列表获取成功', 'items': res})
+
+
 @csrf_exempt
 def get_dir_list(request):
     if request.method != 'POST':
@@ -434,3 +501,53 @@ def get_my_filelist(request):
                     'file_type': i.file_type})
 
     return JsonResponse({'errno': 0, 'msg': "成功打开我创建的文件", 'my_file_list': res})
+
+
+@csrf_exempt
+def create_team_file(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        teamID = request.POST.get('teamID')
+        file_name = request.POST.get('file_name')
+        file_type = request.POST.get('file_type')
+        fatherID = request.POST.get('fatherID')  # 此为文件所在的父文件夹；若该文件直接建在团队文件下，请返回0
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    team = Team.objects.get(teamID=teamID)
+    user_perm_check = Team_User.objects.filter(user=user, team=team)
+    if len(user_perm_check) == 0:
+        return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法创建文件"})
+    if file_name == '':
+        return JsonResponse({'errno': 3099, 'msg': "文件名称不得为空"})
+    if file_type != 'dir' and file_type != 'doc':
+        return JsonResponse({'errno': 3100, 'msg': "文件类型非法"})
+    if not file_name_check_in_team_scale(file_name, team, file_type, fatherID):
+        return name_duplicate_err(file_type, file_name)
+    if fatherID:
+        try:
+            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project=None)
+        except ObjectDoesNotExist:
+            return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
+        except MultipleObjectsReturned:
+            return JsonResponse({'errno': 3096, 'msg': "父文件夹错误"})
+    new_file = File(file_name=file_name,
+                    file_type=file_type,
+                    fatherID=fatherID,
+                    isDelete=False,
+                    user=user,
+                    team=team)
+    new_file.save()
+    return JsonResponse({'errno': 0,
+                         'msg': "新建成功",
+                         'fileID': new_file.fileID,
+                         'file_name': new_file.file_name,
+                         'create_time': new_file.create_time,
+                         'last_modify_time': new_file.last_modify_time,
+                         'author': user.username,
+                         'file_type': file_type,
+                         'content': new_file.content,
+                         })
