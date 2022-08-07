@@ -334,9 +334,113 @@
     {'errno': 1002, 'msg': "未登录不能修改用户头像"}
     ```
 
+#### send_code(获取验证码)
 
+- 路由：/api/user/send_code
 
+- 请求方式：POST
 
+- 前端request格式：
+
+  ```
+  {
+  	'username':xxx,
+  	'password':xxx,
+  	'email':xxx
+  }
+  ```
+
+- 后端response:
+
+  ```json
+  {'errno': 0, 'msg': "验证码已发送，请查收邮件"}
+  ```
+
+- 错误提示
+
+  ```json
+  //用户名为空
+  {'errno': 1, 'msg': '用户名不能为空'}
+  //密码为空
+  {'errno': 2, 'msg': '密码不能为空'}
+  //邮箱为空
+  {'errno': 3, 'msg': '邮箱不能为空'}
+  //用户未注册
+  {'errno': 4, 'msg': '用户尚未注册'}
+  //邮箱格式错误
+  {'errno': 5, 'msg': '邮箱格式错误'}
+  //邮箱不匹配
+  {'errno': 6, 'msg': '邮箱与注册邮箱不匹配'}
+  //请求方式错误
+  {'errno': 10, 'msg': "请求方式错误"}
+  //密码校验
+  {'errno': 11, 'msg': '密码长度不能小于8位'}
+  {'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'}
+  {'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'}
+  {'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'}
+  {'errno': 15, 'msg': '密码包含非法字符'}
+  
+  ```
+
+  #### reset_password(重置密码)
+
+  - 路由：/api/user/reset_password
+
+  - 请求方式：POST
+
+  - 前端request格式：
+
+    ```
+    {
+    	'username':xxx,
+    	'password':xxx,
+    	'email':xxx,
+    	'code':xxx
+    }
+    ```
+
+  - 后端response:
+
+    ```json
+    {'errno': 0, 'msg': '更新密码成功', 'level': 'above middle'}
+    {'errno': 200, 'msg': "更新密码成功", 'level': 'strong'}
+    ```
+
+  - 错误提示
+
+    ```json
+    //用户名为空
+    {'errno': 1, 'msg': '用户名不能为空'}
+    //密码为空
+    {'errno': 2, 'msg': '密码不能为空'}
+    //邮箱为空
+    {'errno': 3, 'msg': '邮箱不能为空'}
+    //用户未注册
+    {'errno': 4, 'msg': '用户尚未注册'}
+    //邮箱格式错误
+    {'errno': 5, 'msg': '邮箱格式错误'}
+    //邮箱不匹配
+    {'errno': 6, 'msg': '邮箱与注册邮箱不匹配'}
+    //验证码为空
+    {'errno': 7, 'msg': '验证码不能为空'}
+    //用户信息错误
+    {'errno': 8, 'msg': '用户信息错误'}
+    //验证码错误
+    {'errno': 9, 'msg': '验证码错误'}
+    //请求方式错误
+    {'errno': 10, 'msg': "请求方式错误"}
+    //密码校验
+    {'errno': 11, 'msg': '密码长度不能小于8位'}
+    {'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'}
+    {'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'}
+    {'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'}
+    {'errno': 15, 'msg': '密码包含非法字符'}
+    
+    ```
+
+    
+
+  
 
 
 

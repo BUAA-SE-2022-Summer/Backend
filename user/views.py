@@ -1,80 +1,20 @@
-import uuid
+from random import Random
+from django.core.mail import send_mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import User
-import oss2
-import configparser
-import os
-from pathlib import Path
-import re
-from string import digits, ascii_lowercase, ascii_uppercase
-from myUtils.utils import  SHA256
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-cf = configparser.ConfigParser()
-cf.read(os.path.join(BASE_DIR, 'Config/django.conf'))
-
-# cf.read('./Config/django.conf')
-
-auth = oss2.Auth(cf.get('data', 'USER'), cf.get('data', 'PWD'))
-endpoint = 'http://oss-cn-hangzhou.aliyuncs.com'
-bucket = oss2.Bucket(auth, endpoint, 'xuemolan')
-base_image_url = 'https://xuemolan.oss-cn-hangzhou.aliyuncs.com/'
+from myUtils.utils import SHA256, check_pwd, validate_phone, validate_email, update_img_file
 
 
-def check_pwd(pwd):
-    if not isinstance(pwd, str) or len(pwd) < 8:
-        return 11
-    r = [False] * 4
-    for ch in pwd:
-        if ch == ' ':
-            return 15
-        if not r[0] and ch in digits:
-            r[0] = True
-        elif not r[1] and ch in ascii_lowercase:
-            r[1] = True
-        elif not r[2] and ch in ascii_uppercase:
-            r[2] = True
-        elif not r[3] and ch in ',<.>/?!;:[]{}()*&^%$#@~`':
-            r[3] = True
-    if r.count(True) < 3:
-        if r.count(True) == 0:
-            return 12
-        if r.count(True) == 1:
-            return 13
-        if r.count(True) == 2:
-            return 14
-    return r.count(True)
-
-
-def validate_phone(phone):
-    ret = re.match(r"^1[35678]\d{9}$", phone)
-    if ret:
-        return True
-    else:
-        return False
-
-
-def validate_email(email):
-    from django.core.validators import validate_email
-    from django.core.exceptions import ValidationError
-    try:
-        validate_email(email)
-        return True
-    except ValidationError:
-        return False
-
-
-def update_img_file(image, userID):
-    # number = uuid.uuid4()
-    base_img_name = str(userID) + '.jpg'
-    image_name = base_image_url + base_img_name
-    res = bucket.put_object(base_img_name, image)
-    if res.status == 200:
-        return image_name
-    else:
-        return False
+def random_str(randomlength=8):
+    str = ''
+    chars = 'abcdefghijklmnopqrstuvwsyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    length = len(chars) - 1
+    random = Random()
+    for i in range(randomlength):
+        str += chars[random.randint(0, length)]
+    return str
 
 
 def login_check(request):
@@ -153,7 +93,8 @@ def register(request):
             return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
         encoder = SHA256()
         hash_password = encoder.hash(password)
-        new_user = User(username=username, password=hash_password, real_name=real_name, email=email, phone=phone, profile=profile)
+        new_user = User(username=username, password=hash_password, real_name=real_name, email=email, phone=phone,
+                        profile=profile)
         new_user.save()
         if num == 3:
             return JsonResponse({'errno': 0, 'msg': '注册成功', 'level': 'above middle'})
@@ -183,7 +124,8 @@ def get_user_info(request):
             return JsonResponse({'errno': 1002, 'msg': "未登录不能获取用户信息"})
         userID = request.session['userID']
         user = User.objects.get(userID=userID)
-        data_info = {'username': user.username, 'password': user.password, 'real_name': user.real_name, 'email': user.email,
+        data_info = {'username': user.username, 'password': user.password, 'real_name': user.real_name,
+                     'email': user.email,
                      'phone': user.phone, 'profile': user.profile, 'img': user.img}
         return JsonResponse({'errno': 0, 'msg': "获取用户信息成功", 'data': data_info})
     else:
@@ -253,3 +195,95 @@ def update_user_img(request):
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
 
 
+@csrf_exempt
+def send_code(request):
+    if request.method == "POST":
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        email = request.POST.get('email', '')
+        if username == '':
+            return JsonResponse({'errno': 1, 'msg': '用户名不能为空'})
+        if password == '':
+            return JsonResponse({'errno': 2, 'msg': '密码不能为空'})
+        if email == '':
+            return JsonResponse({'errno': 3, 'msg': '邮箱不能为空'})
+        if not username_exist(username):
+            return JsonResponse({'errno': 4, 'msg': '用户尚未注册'})
+        if not validate_email(email):
+            return JsonResponse({'errno': 5, 'msg': '邮箱格式错误'})
+        user = User.objects.get(username=username)
+        if user.email != email:
+            return JsonResponse({'errno': 6, 'msg': '邮箱与注册邮箱不匹配'})
+        num = check_pwd(password)
+        if num == 11:
+            return JsonResponse({'errno': 11, 'msg': '密码长度不能小于8位'})
+        if num == 12:
+            return JsonResponse({'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'})
+        if num == 13:
+            return JsonResponse({'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'})
+        if num == 14:
+            return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
+        if num == 15:
+            return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
+        email_title = "找回密码"
+        code = random_str()
+        request.session["code"] = code
+        request.session["username"] = username
+        request.session["email"] = email
+        email_body = "验证码为：{0}".format(code)
+        send_status = send_mail(email_title, email_body, "mobook@horik.cn", [email, ])
+        return JsonResponse({'errno': 0, 'msg': "验证码已发送，请查收邮件"})
+    else:
+        return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
+
+
+@csrf_exempt
+def reset_password(request):
+    if request.method == "POST":
+        username = request.POST.get('username', '')
+        password = request.POST.get('password', '')
+        email = request.POST.get('email', '')
+        code = request.POST.get('code', '')
+        if username == '':
+            return JsonResponse({'errno': 1, 'msg': '用户名不能为空'})
+        if password == '':
+            return JsonResponse({'errno': 2, 'msg': '密码不能为空'})
+        if email == '':
+            return JsonResponse({'errno': 3, 'msg': '邮箱不能为空'})
+        if not username_exist(username):
+            return JsonResponse({'errno': 4, 'msg': '用户尚未注册'})
+        if not validate_email(email):
+            return JsonResponse({'errno': 5, 'msg': '邮箱格式错误'})
+        user = User.objects.get(username=username)
+        if user.email != email:
+            return JsonResponse({'errno': 6, 'msg': '邮箱与注册邮箱不匹配'})
+        if code == '':
+            return JsonResponse({'errno': 7, 'msg': '验证码不能为空'})
+        num = check_pwd(password)
+        if num == 11:
+            return JsonResponse({'errno': 11, 'msg': '密码长度不能小于8位'})
+        if num == 12:
+            return JsonResponse({'errno': 12, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'weak'})
+        if num == 13:
+            return JsonResponse({'errno': 13, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'below middle'})
+        if num == 14:
+            return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
+        if num == 15:
+            return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
+        if username == request.session["username"] and email == request.session["email"]:
+            if code == request.session["code"]:
+                encoder = SHA256()
+                user.password = encoder.hash(password)
+                user.save()
+                del request.session["code"]
+                del request.session["username"]
+                del request.session["email"]
+                if num == 3:
+                    return JsonResponse({'errno': 0, 'msg': '更新密码成功', 'level': 'above middle'})
+                return JsonResponse({'errno': 200, 'msg': "更新密码成功", 'level': 'strong'})
+            else:
+                return JsonResponse({'errno': 9, 'msg': '验证码错误'})
+        else:
+            return JsonResponse({'errno': 8, 'msg': '用户信息错误'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': "请求方式错误"})

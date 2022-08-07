@@ -2,6 +2,8 @@ import oss2
 import configparser
 import os
 from pathlib import Path
+import re
+from string import digits, ascii_lowercase, ascii_uppercase
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 cf = configparser.ConfigParser()
@@ -94,3 +96,48 @@ class SHA256:
         return "".join(format(h, "02x") for h in b"".join(
             d.to_bytes(4, "big") for d in
             [(x + y) & ((2 ** 32) - 1) for x, y in zip(digest, (A, B, C, D, E, F, G, H))]))
+
+
+def check_pwd(pwd):
+    if not isinstance(pwd, str) or len(pwd) < 8:
+        return 11
+    r = [False] * 4
+    for ch in pwd:
+        if ch == ' ':
+            return 15
+        if not r[0] and ch in digits:
+            r[0] = True
+        elif not r[1] and ch in ascii_lowercase:
+            r[1] = True
+        elif not r[2] and ch in ascii_uppercase:
+            r[2] = True
+        elif not r[3] and ch in ',<.>/?!;:[]{}()*&^%$#@~`':
+            r[3] = True
+    if r.count(True) < 3:
+        if r.count(True) == 0:
+            return 12
+        if r.count(True) == 1:
+            return 13
+        if r.count(True) == 2:
+            return 14
+    return r.count(True)
+
+
+def validate_phone(phone):
+    ret = re.match(r"^1[35678]\d{9}$", phone)
+    if ret:
+        return True
+    else:
+        return False
+
+
+def validate_email(email):
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(email)
+        return True
+    except ValidationError:
+        return False
+
+
