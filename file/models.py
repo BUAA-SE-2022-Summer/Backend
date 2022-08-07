@@ -17,7 +17,7 @@ class File(models.Model):
 
     # projectID = models.IntegerField(default=0, null=False)
     # isDir = models.BooleanField(null=False, default=False)
-    file_type = models.CharField(null=False, default='doc', max_length=100)  # 用于标记文件类型 doc为普通文档,uml为uml图,dir为文件夹
+    file_type = models.CharField(null=False, default='文档', max_length=100)  # 用于标记文件类型 doc为普通文档,uml为uml图,dir为文件夹
 
     fatherID = models.IntegerField(default=0)
     content = models.TextField(max_length=65535, null=True)
@@ -43,8 +43,8 @@ class File(models.Model):
     )
 
     # 文档所属的项目
-    project = models.ForeignKey(Project, on_delete=models.CASCADE,
-                                null=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, blank=True,
+                                null=True)
 
     # team_perm = models.IntegerField(default=0)
 
