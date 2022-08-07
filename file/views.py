@@ -41,12 +41,13 @@ def file_name_check(file_name, team, projectID, file_type, father_id):
 
 
 def file_name_check_in_team_scale(file_name, team, file_type, fatherID):
-    team_file_list = File.objects.get(team=team,
-                                      file_type=file_type,
-                                      file_name=file_name,
-                                      isDelete=False,
-                                      fatherID=fatherID,
-                                      project=None)
+    team_file_list = File.objects.filter(team=team,
+                                         file_type=file_type,
+                                         file_name=file_name,
+                                         isDelete=False,
+                                         fatherID=fatherID,
+                                         project=None)
+
     return len(team_file_list) == 0
 
 
@@ -406,10 +407,19 @@ def get_file_centre_list(request):
                 'file_name': file.file_name,
                 'create_time': file.create_time,
                 'last_modify_time': file.last_modify_time,
-                'file_type': file.file_type
+                'file_type': file.file_type,
+                'children': []
             })
         elif file.file_type == 'dir':
-            res.append(get_team_dir(file.fileID, team))
+            res.append({
+                'fileID': file.fileID,
+                'file_name': file.file_name,
+                'create_time': file.create_time,
+                'last_modify_time': file.last_modify_time,
+                'file_type': file.file_type,
+                'children': get_team_dir(file.fileID, team)
+            })
+            # res.append(get_team_dir(file.fileID, team))
     return JsonResponse({'errno': 0, 'msg': '团队文件列表获取成功', 'items': res})
 
 
@@ -544,13 +554,15 @@ def create_team_file(request):
         return JsonResponse({'errno': 3100, 'msg': "文件类型非法"})
     if not file_name_check_in_team_scale(file_name, team, file_type, fatherID):
         return name_duplicate_err(file_type, file_name)
-    if fatherID:
-        try:
-            father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project=None)
-        except ObjectDoesNotExist:
-            return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
-        except MultipleObjectsReturned:
-            return JsonResponse({'errno': 3096, 'msg': "父文件夹错误"})
+    # if fatherID != 0:
+    #     try:
+    #         father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project=None)
+    #     except ObjectDoesNotExist:
+    #         return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
+    #     except MultipleObjectsReturned:
+    #         return JsonResponse({'errno': 3096, 'msg': "父文件夹错误"})
+    # else:
+    #     pass
     new_file = File(file_name=file_name,
                     file_type=file_type,
                     fatherID=fatherID,
