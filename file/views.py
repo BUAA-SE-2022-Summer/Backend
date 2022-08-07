@@ -87,6 +87,8 @@ def create_file(request):
                     team=team,
                     project=project)
     new_file.save()
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
     return JsonResponse({'errno': 0,
                          'msg': "新建成功",
                          'fileID': new_file.fileID,
@@ -125,6 +127,8 @@ def edit_file(request):
         return JsonResponse({'errno': 3092, 'msg': "无法编辑文件夹"})
     file.content = content
     file.save()
+    file.project.is_edit = (file.project.is_edit + 1) % 2
+    file.project.save()
     return JsonResponse({'errno': 0,
                          'msg': "保存成功",
                          'fileID': file.fileID,
@@ -159,6 +163,8 @@ def read_file(request):
         return JsonResponse({'errno': 3093, 'msg': "文件已被删除"})
     if file.file_type == 'dir':
         return JsonResponse({'errno': 3092, 'msg': "无法查看文件夹内容"})
+    file.project.is_edit = (file.project.is_edit + 1) % 2
+    file.project.save()
     return JsonResponse({'errno': 0,
                          'msg': "打开成功",
                          'fileID': file.fileID,
@@ -208,6 +214,8 @@ def delete_file(request):
     file.fatherID = project_root_file.fileID
     file.isDelete = True
     file.save()
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
     return JsonResponse({'errno': 0, 'msg': "删除成功"})
 
 
@@ -251,6 +259,8 @@ def restore_file(request):
         restore_dir(fileID, file_team, file_projectID)
     file.isDelete = False
     file.save()
+    file.project.is_edit = (file.project.is_edit + 1) % 2
+    file.project.save()
     return JsonResponse({'errno': 0, 'msg': "恢复成功"})
 
 
@@ -310,6 +320,8 @@ def project_root_filelist(request):
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
     root_file = project.root_file
     root_fileID = root_file.fileID
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
     filelist = acquire_file_list(root_fileID, projectID, False, user, False)
     return JsonResponse({'errno': 0, 'msg': "成功打开项目", 'filelist': filelist})
 
@@ -343,6 +355,8 @@ def get_dir_list(request):
     if dir.file_type != 'dir':
         return JsonResponse({'errno': 3087, 'msg': "无法展开非目录文件"})
     dir_list = acquire_file_list(dirID, projectID, False, user, is_personal)
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
     return JsonResponse({'errno': 0, 'msg': "成功打开文件夹", 'dirlist': dir_list})
 
 
@@ -380,6 +394,8 @@ def delete_filelist_in_project(request):
     root_file = project.root_file
     root_fileID = root_file.fileID
     filelist = acquire_delete_filelist(root_fileID, projectID)
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
     return JsonResponse({'errno': 0, 'msg': "成功打开回收站", 'delete_filelist': filelist})
 
 
@@ -412,5 +428,6 @@ def get_my_filelist(request):
                     'create_time': i.create_time,
                     'last_modify_time': i.last_modify_time,
                     'file_type': i.file_type})
-
+    project.is_edit = (project.is_edit + 1) % 2
+    project.save()
     return JsonResponse({'errno': 0, 'msg': "成功打开我创建的文件", 'my_file_list': res})

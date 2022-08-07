@@ -2,6 +2,7 @@ from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 import json
 from .models import File
+from project.models import Project
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -28,7 +29,11 @@ class EditFile(WebsocketConsumer):
     def receive(self, text_data):
         text_data_json = json.loads(text_data)
         content = text_data_json['content']
+        projectID = text_data_json['projectID']
         fileID = text_data_json['fileID']
+        project = Project.objects.get(projectID=projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         file = File.objects.get(fileID=fileID)
         file.content = content
         file.save()
@@ -38,7 +43,8 @@ class EditFile(WebsocketConsumer):
             {
                 'type': 'edit_file',
                 'content': content,
-                'fileID': fileID
+                'fileID': fileID,
+                'projectID': projectID
             }
         )
 
@@ -47,8 +53,10 @@ class EditFile(WebsocketConsumer):
     def edit_file(self, event):
         content = event['content']
         fileID = event['fileID']
+        projectID = event['projectID']
         # Send message to WebSocket
         self.send(text_data=json.dumps({
             'content': content,
-            'fileID': fileID
+            'fileID': fileID,
+            'projectID': projectID
         }))
