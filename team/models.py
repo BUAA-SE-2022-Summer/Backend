@@ -20,6 +20,9 @@ class Team(models.Model):
         on_delete=models.CASCADE
     )
 
+    class Meta:
+        db_table = 'team'
+
 
 class Team_User(models.Model):
     team = models.ForeignKey(
@@ -34,3 +37,6 @@ class Team_User(models.Model):
     )
     is_supervisor = models.BooleanField(null=False, default=False)
     is_creator = models.BooleanField(null=False, default=False)
+
+    class Meta:
+        db_table = 'team_user'

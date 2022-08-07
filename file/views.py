@@ -31,13 +31,13 @@ def base_err_check(request):
 
 
 def file_name_check(file_name, team, projectID, file_type, father_id):
-    list = File.objects.filter(team=team,
-                               project_id=projectID,
-                               file_type=file_type,
-                               file_name=file_name,
-                               isDelete=False,
-                               fatherID=father_id)
-    return len(list) == 0
+    f_list = File.objects.filter(team=team,
+                                 project_id=projectID,
+                                 file_type=file_type,
+                                 file_name=file_name,
+                                 isDelete=False,
+                                 fatherID=father_id)
+    return len(f_list) == 0
 
 
 def get_user(request):
@@ -67,14 +67,14 @@ def create_file(request):
     user_perm_check = Team_User.objects.filter(user=user, team=team)
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法创建文件"})
-    if file_type != '文件夹' and file_type != '文档' and file_type != 'UML图':
+    if file_type != 'dir' and file_type != 'doc' and file_type != 'uml':
         return JsonResponse({'errno': 3100, 'msg': "文件类型非法"})
     if file_name == '':
         return JsonResponse({'errno': 3099, 'msg': "文件名称不得为空"})
     if not file_name_check(file_name, team, projectID, file_type, fatherID):
         return name_duplicate_err(file_type, file_name)
     try:
-        father = File.objects.get(fileID=fatherID, file_type='文件夹', isDelete=False, team=team, project=project)
+        father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project=project)
     except ObjectDoesNotExist:
         return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
     except MultipleObjectsReturned:
@@ -121,7 +121,7 @@ def edit_file(request):
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法编辑"})
     if file.isDelete:
         return JsonResponse({'errno': 3093, 'msg': "文件已被删除"})
-    if file.file_type == '文件夹':
+    if file.file_type == 'dir':
         return JsonResponse({'errno': 3092, 'msg': "无法编辑文件夹"})
     file.content = content
     file.save()
@@ -157,7 +157,7 @@ def read_file(request):
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
     if file.isDelete:
         return JsonResponse({'errno': 3093, 'msg': "文件已被删除"})
-    if file.file_type == '文件夹':
+    if file.file_type == 'dir':
         return JsonResponse({'errno': 3092, 'msg': "无法查看文件夹内容"})
     return JsonResponse({'errno': 0,
                          'msg': "打开成功",
@@ -173,7 +173,7 @@ def read_file(request):
 def delete_dir(fileID, team, projectID):
     sub_list = File.objects.filter(fatherID=fileID, isDelete=False, team=team, project_id=projectID)
     for i in sub_list:
-        if i.file_type == '文件夹' and not i.isDelete:
+        if i.file_type == 'dir' and not i.isDelete:
             delete_file(i.fileID, team, projectID)
         i.isDelete = True
         i.save()
@@ -200,7 +200,7 @@ def delete_file(request):
     user_perm_check = Team_User.objects.filter(team=file_team, user=user)
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法删除"})
-    if file.file_type == '文件夹':
+    if file.file_type == 'dir':
         delete_dir(fileID, file_team, file_projectID)
     # 更改父节点为根目录ID
     project = Project.objects.get(projectID=file_projectID)
@@ -218,7 +218,7 @@ def restore_dir(fileID, team, projectID):
         return
     sub_list = File.objects.filter(fatherID=fileID, team=team, project_id=projectID)
     for i in sub_list:
-        if i.file_type == '文件夹':
+        if i.file_type == 'dir':
             restore_file(i.fileID, team, projectID)
         i.isDelete = False
         i.save()
@@ -247,7 +247,7 @@ def restore_file(request):
     user_perm_check = Team_User.objects.filter(team=file_team, user=user)
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法恢复"})
-    if file.file_type == '文件夹':
+    if file.file_type == 'dir':
         restore_dir(fileID, file_team, file_projectID)
     file.isDelete = False
     file.save()
@@ -321,12 +321,12 @@ def project_root_filelist(request, file_type, msg):
 
 @csrf_exempt
 def project_root_uml_list(request):
-    return project_root_filelist(request, 'UML图', 'UML图')
+    return project_root_filelist(request, 'uml', 'UML图')
 
 
 @csrf_exempt
 def project_root_doc_list(request):
-    return project_root_filelist(request, '文档', '文档')
+    return project_root_filelist(request, 'doc', '文档')
 
 
 @csrf_exempt
@@ -360,9 +360,9 @@ def get_dir_list(request):
         dir = File.objects.get(fileID=dirID, isDelete=False, project_id=projectID, team=team)
     except ObjectDoesNotExist:
         return JsonResponse({'errno': 3088, 'msg': "无法获取目录信息"})
-    if dir.file_type != '文件夹':
+    if dir.file_type != 'dir':
         return JsonResponse({'errno': 3087, 'msg': "无法展开非目录文件"})
-    dir_list = acquire_file_list(dirID, projectID, False, user, is_personal)
+    dir_list = acquire_file_list(dirID, projectID, False, user, is_personal, 'doc')
     return JsonResponse({'errno': 0, 'msg': "成功打开文件夹", 'dirlist': dir_list})
 
 
