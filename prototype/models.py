@@ -30,7 +30,9 @@ class Page(models.Model):
     pageID = models.AutoField(primary_key=True)
     pageName = models.CharField(verbose_name='页面名称', max_length=64, default='')
     pageComponentData = models.TextField(verbose_name='页面组件信息', default='[]')
-    pageCanvasStyle = models.TextField(verbose_name='页面组件额外信息', default='[]')
+    pageCanvasStyle = models.TextField(
+        verbose_name='页面组件额外信息',
+        default='{"width":1200,"height":740,"scale":100,"color":"#000","opacity":1,"background":"#fff","fontSize":14}')
     pageUser = models.IntegerField(verbose_name='页面创建者', default=0)
     pageTime = models.DateTimeField(verbose_name='页面创建时间', auto_now_add=True)
     is_first = models.BooleanField(verbose_name='是否为首页', default=False)

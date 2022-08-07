@@ -9,6 +9,14 @@ from django.shortcuts import render
 from file.models import File
 
 
+def login_check(request):
+    # return 'userID' in request.session
+    lc = request.session.get('userID')
+    if not lc:
+        return False
+    return True
+
+
 # Create your views here.
 @csrf_exempt
 def create_project(request):
@@ -302,3 +310,49 @@ def cancel_delete_project(request):
         return JsonResponse({'errno': 0, 'msg': '恢复项目成功'})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def copy_project(request):
+    if request.method != 'POST':
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+    if not login_check(request):
+        return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    try:
+        projectID = request.POST.get('projectID')
+    except ValueError:
+        return JsonResponse({'errno': 1, 'msg': "信息获取失败"})
+    try:
+        project = Project.objects.get(projectID=projectID)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 2, 'msg': "无法获取项目信息"})
+    team = project.team
+    user_perm_check = Team_User.objects.filter(user=user, team=team)
+    if len(user_perm_check) == 0:
+        return JsonResponse({'errno': 3, 'msg': "您不是该团队的成员，无法查看"})
+    root_file = project.root_file
+    root_fileID = root_file.fileID
+    new_project = Project(projectName=project.projectName+'_copy', projectDesc=project.projectDesc, projectImg=project.projectImg,
+                          projectUser=user.userID, is_star=False, team=team, is_delete=False)
+    new_project.save()
+    new_root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
+                         project_id=new_project.projectID)
+    new_root_file.save()
+    new_project.root_file_id = new_root_file.fileID
+    new_project.save()
+    copy_dir_file(root_fileID, new_root_file.fileID, projectID, new_project.projectID)
+    return JsonResponse({'errno': 0, 'msg': '复制项目成功', 'projectID': new_project.projectID,
+                         'project_root_fileID': new_root_file.fileID})
+
+
+@csrf_exempt
+def copy_dir_file(src_dirID, des_dirID, projectID, new_projectID):
+    file_list = File.objects.filter(fatherID=src_dirID, project_id=projectID)
+    for file in file_list:
+        new_file = File(file_name=file.file_name, file_type=file.file_type, fatherID=des_dirID, isDelete=file.isDelete,
+                        user=file.user, team=file.team, project_id=new_projectID)
+        new_file.save()
+        if file.file_type == 'dir':
+            copy_dir_file(file.fileID, new_file.fileID, projectID, new_projectID)
