@@ -32,10 +32,12 @@ def create_project(request):
         team = Team.objects.get(teamID=teamID)
         if project_name == '':
             return JsonResponse({'errno': 1, 'msg': '项目名称不能为空'})
+        projects = Project.objects.filter(projectName=project_name)
+        if len(projects) > 0:
+            return JsonResponse({'errno': 2, 'msg': '项目名称已存在'})
         new_project = Project(projectName=project_name, projectDesc=project_desc,
                               projectUser=user.userID, team=team)
         new_project.save()
-
         root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
                          project_id=new_project.projectID)
         root_file.save()
@@ -138,6 +140,9 @@ def rename_project(request):
         new_projectName = request.POST.get('project_name', '')
         if new_projectName == '':
             return JsonResponse({'errno': 2, 'msg': '项目名称不能为空'})
+        projects = Project.objects.filter(projectName=new_projectName)
+        if len(projects) > 0:
+            return JsonResponse({'errno': 3, 'msg': '项目名称已存在'})
         project.projectName = new_projectName
         project.is_edit = (project.is_edit + 1) % 2
         project.save()
