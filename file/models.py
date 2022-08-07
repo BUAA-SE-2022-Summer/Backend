@@ -43,8 +43,8 @@ class File(models.Model):
     )
 
     # 文档所属的项目
-    project = models.ForeignKey(Project, on_delete=models.CASCADE,
-                                null=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, blank=True,
+                                null=True)
 
     # team_perm = models.IntegerField(default=0)
 

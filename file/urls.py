@@ -10,8 +10,11 @@ urlpatterns = [
     path('read_file', views.read_file),
     path('delete_file', views.delete_file),
     path('restore_file', views.restore_file),
-    path('project_root_filelist', views.project_root_filelist),
+    # path('project_root_filelist', views.project_root_filelist),
     path('get_dir_list', views.get_dir_list),
     path('delete_filelist', views.delete_filelist_in_project),
     path('get_my_filelist', views.get_my_filelist),
+    path('project_root_uml_list', views.project_root_uml_list),
+    path('project_root_doc_list', views.project_root_doc_list),
+    path('project_root_pro_list', views.project_root_pro_list)
 ]

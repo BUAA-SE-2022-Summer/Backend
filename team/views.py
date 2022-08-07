@@ -122,21 +122,23 @@ def invite_member(request):
     verify_url = generate_verify_url(target_user, team, user)
     # html = generate_html_message(verify_url, target_username, user.username, team.team_name)
 
-    context = {'invitor_name': str(user.username),
-               'team_name': str(team.team_name),
-               'verify_url': str(verify_url)}
-    # t_path = os.path.join(BASE_DIR, 'team/../templates/invitation_format.html')
-    t = loader.get_template('invitation_format.html')
-    html_content = t.render(context)
-    msg = EmailMultiAlternatives('来自墨书的邀请函', html_content, settings.EMAIL_FROM, [target_user.email])
-    msg.attach_alternative(html_content, "text/html")
-    msg.send()
+    # context = {'invitor_name': str(user.username),
+    #            'team_name': str(team.team_name),
+    #            'verify_url': str(verify_url)}
+    # # t_path = os.path.join(BASE_DIR, 'team/../templates/invitation_format.html')
+    # t = loader.get_template('invitation_format.html')
+    # html_content = t.render(context)
+    # msg = EmailMultiAlternatives('来自墨书的邀请函', html_content, settings.EMAIL_FROM, [target_user.email])
+    # msg.attach_alternative(html_content, "text/html")
+    # msg.send()
+
     # send_mail(subject='来自墨书的邀请函', message='Hello, ' + target_username, from_email=settings.EMAIL_FROM,
     #           recipient_list=[target_user.email], html_message=html)
 
     # new_relation = Team_User(team=team, user=target_user, is_supervisor=False, is_creator=False)
     # new_relation.save()
-    return JsonResponse({'errno': 0, 'msg': "已向用户" + target_username + "发送邀请邮件"})
+    # return JsonResponse({'errno': 0, 'msg': "已向用户" + target_username + "发送邀请邮件"})
+    return JsonResponse({'errno': 0, 'url': verify_url})
 
 
 def check_invitation_token(token):

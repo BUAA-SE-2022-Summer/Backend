@@ -38,7 +38,7 @@ def create_prototype(request):
 # <<<<<<< HEAD
             father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project_id=projectID)
 # =======
-#             father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project=project)
+#             father = File.objects.get(fileID=fatherID, file_type='文件夹', isDelete=False, team=team, project=project)
 # >>>>>>> 448da8307c3fb01be5231c68049781e58812f06c
         except ObjectDoesNotExist:
             return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})

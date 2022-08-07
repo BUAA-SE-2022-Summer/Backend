@@ -31,13 +31,13 @@ def base_err_check(request):
 
 
 def file_name_check(file_name, team, projectID, file_type, father_id):
-    list = File.objects.filter(team=team,
-                               project_id=projectID,
-                               file_type=file_type,
-                               file_name=file_name,
-                               isDelete=False,
-                               fatherID=father_id)
-    return len(list) == 0
+    f_list = File.objects.filter(team=team,
+                                 project_id=projectID,
+                                 file_type=file_type,
+                                 file_name=file_name,
+                                 isDelete=False,
+                                 fatherID=father_id)
+    return len(f_list) == 0
 
 
 def get_user(request):
@@ -264,22 +264,27 @@ def restore_file(request):
     return JsonResponse({'errno': 0, 'msg': "恢复成功"})
 
 
-def acquire_file_list(dirID, projectID, allow_del, user, is_personal):
+def acquire_file_list(dirID, projectID, allow_del, user, is_personal, file_type):
     res = []
-    if is_personal:
-        file_list = File.objects.filter(fatherID=dirID, project_id=projectID, user=user)
+    if file_type != 'pro':
+        if is_personal:
+            file_list = File.objects.filter(fatherID=dirID, project_id=projectID, user=user, file_type=file_type)
+        else:
+            file_list = File.objects.filter(fatherID=dirID, project_id=projectID, file_type=file_type)
+        for i in file_list:
+            if not (i.isDelete and not allow_del):
+                res.append({'fileID': i.fileID,
+                            'file_name': i.file_name,
+                            'create_time': i.create_time,
+                            'last_modify_time': i.last_modify_time,
+                            'file_type': i.file_type})
+        return res
     else:
-        file_list = File.objects.filter(fatherID=dirID, project_id=projectID)
-    for i in file_list:
-        if not (i.isDelete and not allow_del):
-            res.append({'fileID': i.fileID,
-                        'file_name': i.file_name,
-                        'create_time': i.create_time,
-                        'last_modify_time': i.last_modify_time,
-                        'file_type': i.file_type})
+        proto_list = get_prototype_list(dirID, projectID, allow_del, user, is_personal)
+        return proto_list
+    # proto_list = get_prototype_list(dirID, projectID, allow_del, user, is_personal)
+    # res.extend(proto_list)
 
-    proto_list = get_prototype_list(dirID, projectID, allow_del, user, is_personal)
-    res.extend(proto_list)
     # if is_personal:
     #     prototype_list = Prototype.objects.filter(fatherID=dirID, projectID=projectID)  # , prototypeUser=user)
     # else:
@@ -294,11 +299,11 @@ def acquire_file_list(dirID, projectID, allow_del, user, is_personal):
     #             'last_modify_time': j.last_modify_time,
     #             'file_type': 'proto'
     #         })
-    return res
+    # return res
 
 
-@csrf_exempt
-def project_root_filelist(request):
+# @csrf_exempt
+def project_root_filelist(request, file_type, msg):
     # base_err_check(request)
     if request.method != 'POST':
         return method_err()
@@ -322,8 +327,23 @@ def project_root_filelist(request):
     root_fileID = root_file.fileID
     project.is_edit = (project.is_edit + 1) % 2
     project.save()
-    filelist = acquire_file_list(root_fileID, projectID, False, user, False)
-    return JsonResponse({'errno': 0, 'msg': "成功打开项目", 'filelist': filelist})
+    filelist = acquire_file_list(root_fileID, projectID, False, user, False, file_type)
+    return JsonResponse({'errno': 0, 'msg': '切换至' + msg + '列表', 'filelist': filelist})
+
+
+@csrf_exempt
+def project_root_uml_list(request):
+    return project_root_filelist(request, 'uml', 'UML图')
+
+
+@csrf_exempt
+def project_root_doc_list(request):
+    return project_root_filelist(request, 'doc', '文档')
+
+
+@csrf_exempt
+def project_root_pro_list(request):
+    return project_root_filelist(request, 'pro', '原型图')
 
 
 @csrf_exempt
@@ -354,7 +374,7 @@ def get_dir_list(request):
         return JsonResponse({'errno': 3088, 'msg': "无法获取目录信息"})
     if dir.file_type != 'dir':
         return JsonResponse({'errno': 3087, 'msg': "无法展开非目录文件"})
-    dir_list = acquire_file_list(dirID, projectID, False, user, is_personal)
+    dir_list = acquire_file_list(dirID, projectID, False, user, is_personal, 'doc')
     project.is_edit = (project.is_edit + 1) % 2
     project.save()
     return JsonResponse({'errno': 0, 'msg': "成功打开文件夹", 'dirlist': dir_list})
