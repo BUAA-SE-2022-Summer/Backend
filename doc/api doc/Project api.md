@@ -610,4 +610,50 @@
     {'errno': 1002, 'msg': "未登录不能获取项目列表"}
     ```
 
-#### 
+#### empty_recycle_bin(清空回收站)
+
+- 路由：/api/project/empty_recycle_bin
+
+- 请求方式：POST
+
+- 前端request格式：
+
+  ```json
+  {
+      'teamID':xxx,
+  	
+  }
+  ```
+
+- 后端response:
+
+  ```json
+  {'errno': 0, 'msg': '清空回收站成功'}
+  ```
+
+- 错误提示
+
+  - 没有权限
+
+    ```json
+    {'errno': 1, 'msg': '没有权限获取该项目列表'}
+    ```
+
+  - 回收站为空
+
+    ```json
+    {'errno': 2, 'msg': '回收站为空'}
+    ```
+
+  - 请求方式错误
+
+    ```json
+    {'errno': 10, 'msg': "请求方式错误"}
+    ```
+
+  - 用户未登录
+
+    ```json
+    {'errno': 1002, 'msg': "未登录不能获取项目列表"}
+    ```
+

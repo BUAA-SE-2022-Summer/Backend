@@ -382,3 +382,26 @@ def copy_dir_file(src_dirID, des_dirID, projectID, new_projectID):
         new_file.save()
         if file.file_type == 'dir':
             copy_dir_file(file.fileID, new_file.fileID, projectID, new_projectID)
+
+
+@csrf_exempt
+def empty_recycle_bin(request):
+    from myUtils.utils import login_check
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能获取项目列表"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限获取该项目列表'})
+        projects = Project.objects.filter(team=team, is_delete=True)
+        if len(projects) == 0:
+            return JsonResponse({'errno': 2, 'msg': '回收站为空'})
+        for project in projects:
+            project.delete()
+        return JsonResponse({'errno': 0, 'msg': '清空回收站成功'})
+    else:
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})

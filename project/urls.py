@@ -15,4 +15,5 @@ urlpatterns = [
     path('delete_project_recycle_bin', views.delete_project_recycle_bin),
     path('cancel_delete_project', views.cancel_delete_project),
     path('copy_project', views.copy_project),
+    path('empty_recycle_bin', views.empty_recycle_bin),
 ]
