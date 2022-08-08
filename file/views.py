@@ -293,6 +293,7 @@ def acquire_file_list(dirID, projectID, allow_del, user, is_personal, file_type)
     else:
         proto_list = get_prototype_list(dirID, projectID, allow_del, user, is_personal)
         return proto_list
+
     # proto_list = get_prototype_list(dirID, projectID, allow_del, user, is_personal)
     # res.extend(proto_list)
 
@@ -311,6 +312,22 @@ def acquire_file_list(dirID, projectID, allow_del, user, is_personal, file_type)
     #             'file_type': 'proto'
     #         })
     # return res
+
+
+def acquire_file_list_in_centre(dirID, projectID, allow_del):
+    res = []
+    file_list = File.objects.filter(fatherID=dirID, project_id=projectID, file_type='doc')
+    for i in file_list:
+        if not (i.isDelete and not allow_del):
+            res.append({'id': i.fileID,
+                        'name': i.file_name,
+                        # 'create_time': i.create_time,
+                        # 'last_modify_time': i.last_modify_time,
+                        # 'file_type': i.file_type,
+                        'is_dir': False,
+                        'is_pro': False
+                        })
+    return res
 
 
 # @csrf_exempt
@@ -362,14 +379,27 @@ def get_team_dir(dirID, team):
     r = []
     for file in sub_list:
         if file.file_type == 'dir':
-            r.append(get_team_dir(file.fileID, team))
+            r.append({
+                'id': file.fileID,
+                'name': file.file_name,
+                # 'create_time': file.create_time,
+                # 'last_modify_time': file.last_modify_time,
+                # 'file_type': file.file_type,
+                'is_dir': True,
+                'is_pro': False,
+                'children': get_team_dir(file.fileID, team)
+            })
+            # r.append(get_team_dir(file.fileID, team))
         else:
             r.append({
-                'fileID': file.fileID,
-                'file_name': file.file_name,
-                'create_time': file.create_time,
-                'last_modify_time': file.last_modify_time,
-                'file_type': file.file_type
+                'id': file.fileID,
+                'name': file.file_name,
+                # 'create_time': file.create_time,
+                # 'last_modify_time': file.last_modify_time,
+                # 'file_type': file.file_type,
+                'is_dir': False,
+                'is_pro': False
+                # 'children': get_team_dir(file.fileID, team)
             })
     return r
 
@@ -395,28 +425,34 @@ def get_file_centre_list(request):
         root_file = pro.root_file
         root_fileID = root_file.fileID
         res.append({
-            'projectID': pro.projectID,
-            'projectName': pro.projectName,
-            'children': acquire_file_list(root_fileID, pro.projectID, False, user, False, 'doc')
+            'id': pro.projectID,
+            'name': pro.projectName,
+            'is_dir': True,
+            'is_pro': True,
+            'children': acquire_file_list_in_centre(root_fileID, pro.projectID, False)
+            # acquire_file_list(root_fileID, pro.projectID, False, user, False, 'doc')
         })
     team_file_list = File.objects.filter(team=team, fatherID=0, isDelete=False)
     for file in team_file_list:
         if file.file_type == 'doc':
             res.append({
-                'fileID': file.fileID,
-                'file_name': file.file_name,
-                'create_time': file.create_time,
-                'last_modify_time': file.last_modify_time,
-                'file_type': file.file_type,
-                'children': []
+                'id': file.fileID,
+                'name': file.file_name,
+                # 'create_time': file.create_time,
+                # 'last_modify_time': file.last_modify_time,
+                # 'file_type': file.file_type,
+                'is_dir': False,
+                'is_pro': False
             })
         elif file.file_type == 'dir':
             res.append({
-                'fileID': file.fileID,
-                'file_name': file.file_name,
-                'create_time': file.create_time,
-                'last_modify_time': file.last_modify_time,
-                'file_type': file.file_type,
+                'id': file.fileID,
+                'name': file.file_name,
+                # 'create_time': file.create_time,
+                # 'last_modify_time': file.last_modify_time,
+                # 'file_type': file.file_type,
+                'is_dir': True,
+                'is_pro': False,
                 'children': get_team_dir(file.fileID, team)
             })
             # res.append(get_team_dir(file.fileID, team))
