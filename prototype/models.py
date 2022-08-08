@@ -21,7 +21,7 @@ class Prototype(models.Model):
         on_delete=models.CASCADE,
         blank=True, null=True
     )
-
+    is_sharing = models.BooleanField(default=False)
     class Meta:
         db_table = 'prototype'
 
