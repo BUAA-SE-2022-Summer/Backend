@@ -6,6 +6,7 @@ from django.shortcuts import render
 # from itsdangerous import Serializer
 # from itsdangerous import Serializer
 from django.template import loader
+from django.utils import timezone
 
 from backend import settings
 from backend.settings import SECRET_KEY
@@ -57,7 +58,7 @@ def create_team(request):
     name_check_list = Team.objects.filter(team_name=team_name)
     if len(name_check_list) != 0:
         return JsonResponse({'errno': 2098, 'msg': "团队名称重复，取个新名字吧～"})
-    new_team = Team(manager=manager, team_name=team_name)
+    new_team = Team(manager=manager, team_name=team_name, recently_used=timezone.now())
     new_team.save()
     Team_User.objects.create(team=new_team, user=manager, is_supervisor=True, is_creator=True)
     return JsonResponse({'errno': 0,
@@ -119,7 +120,8 @@ def invite_member(request):
     if len(relation) != 0:
         return JsonResponse({'errno': 2091, 'msg': "您邀请的用户已在团队中"})
     user = User.objects.get(userID=userID)
-
+    # team.recently_used = timezone.now()
+    # team.save()
     verify_url = generate_verify_url(target_user, team, user)
     # html = generate_html_message(verify_url, target_username, user.username, team.team_name)
 
@@ -458,3 +460,33 @@ def show_my_team_list(request):
             'member_num': num
         })
     return JsonResponse({'errno': 0, 'msg': "查看成功", 'team_list': team_list_res})
+
+
+@csrf_exempt
+def recently_used_teams(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    t_u = list(Team_User.objects.filter(user=user))
+    t_u.sort(key=lambda x: x.team.recently_used)
+    t_u = reversed(t_u)
+    cnt = 0
+    res = []
+    for i in t_u:
+        if cnt == 4:
+            break
+        cnt += 1
+        member_check = Team_User.objects.filter(team=i.team)
+        num = len(member_check)
+        res.append({
+            'teamID': i.team.teamID,
+            'team_name': i.team.team_name,
+            'team_manager': i.team.manager.username,
+            'is_creator': i.is_creator,
+            'is_supervisor': i.is_supervisor,
+            'member_num': num
+        })
+    return JsonResponse({'errno': 0, 'msg': "最近使用团队列表如下", 'team_list': res})

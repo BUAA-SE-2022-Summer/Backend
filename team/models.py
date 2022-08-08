@@ -19,6 +19,7 @@ class Team(models.Model):
         to_field='userID',
         on_delete=models.CASCADE
     )
+    recently_used = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'team'

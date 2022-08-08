@@ -1,5 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from project.models import Project
 from user.models import User
@@ -178,6 +179,8 @@ def get_project_list(request):
                 'is_star': project.is_star,
                 'project_root_fileID': project.root_file_id  # .fileID
             })
+        team.recently_used = timezone.now()
+        team.save()
         return JsonResponse({'errno': 0, 'msg': '获取项目列表成功', 'project_list': project_list})
     else:
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
