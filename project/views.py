@@ -378,7 +378,7 @@ def copy_dir_file(src_dirID, des_dirID, projectID, new_projectID):
     file_list = File.objects.filter(fatherID=src_dirID, project_id=projectID)
     for file in file_list:
         new_file = File(file_name=file.file_name, file_type=file.file_type, fatherID=des_dirID, isDelete=file.isDelete,
-                        user=file.user, team=file.team, project_id=new_projectID)
+                        content=file.content, is_star= file.is_star, user=file.user, team=file.team, project_id=new_projectID)
         new_file.save()
         if file.file_type == 'dir':
             copy_dir_file(file.fileID, new_file.fileID, projectID, new_projectID)
