@@ -8,7 +8,7 @@ from django.views.decorators.csrf import csrf_exempt
 class Editprototype(WebsocketConsumer):
     @csrf_exempt
     def connect(self):
-        # print(pageID)
+        print(self.scope['user'])
         self.room_group_name = 'we_Edit'
 
         # Join room group
