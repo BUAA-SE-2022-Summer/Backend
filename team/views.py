@@ -9,6 +9,7 @@ from django.template import loader
 
 from backend import settings
 from backend.settings import SECRET_KEY
+from myUtils.utils import SHA256
 from .error import *
 # from ..myUtils.utils import *
 from .models import Team, Team_User
@@ -69,7 +70,7 @@ def create_team(request):
 def generate_verify_url(user, team, invitor):
     # serializer = Serializer(SECRET_KEY)
     serializer = URLSafeTimedSerializer(SECRET_KEY)
-    data = {'userID': user.userID, 'email': user.email, 'teamID': team.teamID, 'invitorID': invitor.userID}
+    data = {'userID': user.userID, 'teamID': team.teamID, 'invitorID': invitor.userID}
     token = serializer.dumps(data).encode().decode()
     verify_url = settings.EMAIL_INVITATION_URL + '?token=' + token
     return verify_url
@@ -149,11 +150,11 @@ def check_invitation_token(token):
         return None
     else:
         userID = data.get('userID')
-        email = data.get('email')
+        # email = data.get('email')
         teamID = data.get('teamID')
         invitorID = data.get('invitorID')
         try:
-            user = User.objects.get(userID=userID, email=email)
+            user = User.objects.get(userID=userID)
             team = Team.objects.get(teamID=teamID)
             invitor = User.objects.get(userID=invitorID)
         except User.DoesNotExist:
@@ -221,10 +222,12 @@ def accept_invitation(request):
     #     return not_login_err()
     try:
         token = request.POST.get('token')
-        # password = request.POST.get('password')
+        password = request.POST.get('password')
     except ValueError:
         return JsonResponse({'errno': 2096, 'msg': "信息获取失败"})
     user, team, invitor = check_invitation_token(token)
+    # print(user.username)
+    # print(user.password)
     if not user:
         # return http.HttpResponseBadRequest('无法获取用户信息')
         return JsonResponse({'errno': 2095, 'msg': "无法获取用户信息"})
@@ -234,7 +237,10 @@ def accept_invitation(request):
     if not invitor:
         return JsonResponse({'errno': 2086, 'msg': "无法获取邀请者信息"})
     # if password != user.password:
-    #     JsonResponse({'errno': 2087, 'msg': "密码错误"})
+    encoder = SHA256()
+    # print(encoder.hash(password))
+    if user.password != encoder.hash(password):
+        return JsonResponse({'errno': 2087, 'msg': "密码错误"})
     re_check = Team_User.objects.filter(team=team, user=user)
     if len(re_check) != 0:
         return JsonResponse({'errno': 2084, 'msg': "您已是团队" + team.team_name + '的成员'})
