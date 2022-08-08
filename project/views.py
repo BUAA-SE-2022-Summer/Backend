@@ -353,7 +353,7 @@ def copy_project(request):
         return JsonResponse({'errno': 4, 'msg': "该项目已存在"})
     root_file = project.root_file
     root_fileID = root_file.fileID
-    new_project = Project(projectName=project.projectName, projectDesc=project.projectDesc,
+    new_project = Project(projectName=projectName, projectDesc=project.projectDesc,
                           projectImg=project.projectImg, projectUser=user.userID, is_star=False,
                           team=team, is_delete=False)
     new_project.save()
