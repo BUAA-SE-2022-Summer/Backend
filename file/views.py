@@ -200,11 +200,11 @@ def read_file(request):
                          })
 
 
-def delete_dir(fileID, team, projectID):
-    sub_list = File.objects.filter(fatherID=fileID, isDelete=False, team=team, project_id=projectID)
+def delete_dir(fileID, team, project):
+    sub_list = File.objects.filter(fatherID=fileID, isDelete=False, team=team, project=project)
     for i in sub_list:
         if i.file_type == 'dir' and not i.isDelete:
-            delete_file(i.fileID, team, projectID)
+            delete_file(i.fileID, team, project)
         i.isDelete = True
         i.save()
 
@@ -226,16 +226,22 @@ def delete_file(request):
     except ObjectDoesNotExist:
         return JsonResponse({'errno': 3091, 'msg': "无法获取文件信息"})
     file_team = file.team
-    file_projectID = file.project_id  # Project.objects.get(projectID=file.projectID)
     user_perm_check = Team_User.objects.filter(team=file_team, user=user)
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法删除"})
+
+    # file_projectID = file.project_id  # Project.objects.get(projectID=file.projectID)
+    pro = file.project
+
     if file.file_type == 'dir':
-        delete_dir(fileID, file_team, file_projectID)
+        delete_dir(fileID, file_team, pro)  # file_projectID)
     # 更改父节点为根目录ID
-    project = Project.objects.get(projectID=file_projectID)
-    project_root_file = project.root_file
-    file.fatherID = project_root_file.fileID
+    if pro is not None:
+        # project = Project.objects.get(projectID=file_projectID)
+        project_root_file = pro.root_file
+        file.fatherID = project_root_file.fileID
+    else:
+        file.fatherID = 0
     file.isDelete = True
     file.save()
     # project.is_edit = (project.is_edit + 1) % 2
@@ -548,6 +554,16 @@ def delete_filelist_in_project(request):
     # project.save()
     pro_time_update(root_file)
     return JsonResponse({'errno': 0, 'msg': "成功打开回收站", 'delete_filelist': filelist})
+
+
+# @csrf_exempt
+# def delete_filelist_in_centre(request):
+#     if request.method != 'POST':
+#         return method_err()
+#     if not login_check(request):
+#         return not_login_err()
+#     user = get_user(request)
+
 
 
 @csrf_exempt
