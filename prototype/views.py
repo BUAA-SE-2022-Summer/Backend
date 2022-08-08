@@ -52,6 +52,9 @@ def create_prototype(request):
         new_page = Page(pageName='首页', pageUser=userID, is_first=True, prototype=new_prototype)
         new_prototype.save()
         new_page.save()
+        project = Project.objects.get(projectID=projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '创建成功',
                              'prototypeID': new_prototype.prototypeID,
@@ -87,6 +90,9 @@ def create_page(request):
             return JsonResponse({'errno': 2, 'msg': '页面名称不能为空'})
         new_page = Page(pageName=pageName, pageUser=userID, prototype=prototype)
         new_page.save()
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '创建成功',
                              'pageID': new_page.pageID,
@@ -114,6 +120,9 @@ def open_prototype(request):
         for page in pages:
             namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
         first_page = Page.objects.get(prototype=prototype, is_first=True)
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '打开成功',
                              'namelist': namelist,
@@ -140,6 +149,9 @@ def change_page(request):
         pageID = request.POST.get('pageID', '')
         page = Page.objects.get(pageID=pageID, prototype=prototype)
         componentData = page.pageComponentData
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '更改成功',
                              'componentData': componentData,
@@ -169,6 +181,9 @@ def change_page_name(request):
             return JsonResponse({'errno': 2, 'msg': '页面名称不能为空'})
         page.pageName = pageName
         page.save()
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '更改成功',
                              'pageID': page.pageID,
@@ -198,6 +213,9 @@ def update_page(request):
         page.pageComponentData = pageComponentData
         page.pageCanvasStyle = pageCanvasStyle
         page.save()
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '更改成功',
                              'componentData': pageComponentData,
@@ -233,6 +251,9 @@ def delete_page(request):
         for page in pages:
             namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
         first_page = Page.objects.get(prototype=prototype, is_first=True)
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
         return JsonResponse({'errno': 0,
                              'msg': '删除成功',
                              'namelist': namelist,
