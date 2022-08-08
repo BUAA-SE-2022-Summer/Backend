@@ -1,6 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+
 from project.models import Project
 from user.models import User
 from team.models import Team
@@ -10,6 +11,8 @@ from prototype.models import Prototype
 from prototype.models import Page
 from django.shortcuts import render
 from myUtils.utils import login_check
+from itsdangerous import URLSafeTimedSerializer, BadData
+from backend.settings import SECRET_KEY
 
 
 # Create your views here.
@@ -35,11 +38,11 @@ def create_prototype(request):
         if prototypeName == '':
             return JsonResponse({'errno': 3, 'msg': '原型名称不能为空'})
         try:
-# <<<<<<< HEAD
+            # <<<<<<< HEAD
             father = File.objects.get(fileID=fatherID, file_type='dir', isDelete=False, team=team, project_id=projectID)
-# =======
-#             father = File.objects.get(fileID=fatherID, file_type='文件夹', isDelete=False, team=team, project=project)
-# >>>>>>> 448da8307c3fb01be5231c68049781e58812f06c
+        # =======
+        #             father = File.objects.get(fileID=fatherID, file_type='文件夹', isDelete=False, team=team, project=project)
+        # >>>>>>> 448da8307c3fb01be5231c68049781e58812f06c
         except ObjectDoesNotExist:
             return JsonResponse({'errno': 3097, 'msg': "父文件夹不存在"})
         except MultipleObjectsReturned:
@@ -256,3 +259,99 @@ def get_prototype_list(fatherID, projectID, allow_del, user, is_personal):
                 'file_type': 'pro'
             })
     return res
+
+
+def generate_sharing_code(prototypeID):
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    data = {'proID': prototypeID}
+    token = serializer.dumps(data).encode().decode()
+    return token
+
+
+@csrf_exempt
+def share_prototype(request):
+    if request.method != 'POST':
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+    if not login_check(request):
+        return JsonResponse({'errno': 1002, 'msg': "请先登录"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    try:
+        prototypeID = request.POST.get('prototypeID')
+    except ValueError:
+        return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
+
+    # try:
+    prototype = Prototype.objects.get(prototypeID=prototypeID)
+    team = prototype.team
+    t_u_check = Team_User.objects.filter(team=team, user=user)
+    if len(t_u_check) == 0:
+        return JsonResponse({'errno': 1, 'msg': '您不具有分享权限'})
+    # except prototype.ObjectDoesNotExist:
+    #     return JsonResponse({'errno': 5, 'msg': '原型图信息获取错误'})
+    # except prototype.MultipleObjectsReturned:
+    #     return JsonResponse({'errno': 5, 'msg': '原型图信息获取错误'})
+    prototype.is_sharing = True
+    prototype.save()
+    token = generate_sharing_code(prototypeID)
+    return JsonResponse({'errno': 0, 'msg': '成功获取加密串', 'code': token})
+
+
+def decode_sharing_code(code):
+    serializer = URLSafeTimedSerializer(SECRET_KEY)
+    data = serializer.loads(code)
+    proID = data.get('proID')
+    return proID
+
+
+@csrf_exempt
+def enter_sharing_link(request):
+    if request.method != 'POST':
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+    if not login_check(request):
+        return JsonResponse({'errno': 1002, 'msg': "请先登录"})
+    # userID = request.session['userID']
+    # user = User.objects.get(userID=userID)
+    try:
+        code = request.POST.get('code')
+    except ValueError:
+        return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
+    proID = decode_sharing_code(code)
+    prototype = Prototype.objects.get(prototypeID=proID)
+    if not prototype.is_sharing:
+        return JsonResponse({'errno': 5, 'msg': '原型图预览未开启'})
+    pages = Page.objects.filter(prototype=prototype)
+    namelist = []
+    for page in pages:
+        namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
+    first_page = Page.objects.get(prototype=prototype, is_first=True)
+    return JsonResponse({'errno': 0,
+                         'msg': '正在进入预览界面',
+                         'namelist': namelist,
+                         'first_component': first_page.pageComponentData,
+                         'first_canvasStyle': first_page.pageCanvasStyle,
+                         })
+
+
+@csrf_exempt
+def close_sharing(request):
+    if request.method != 'POST':
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+    if not login_check(request):
+        return JsonResponse({'errno': 1002, 'msg': "请先登录"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    try:
+        prototypeID = request.POST.get('prototypeID')
+    except ValueError:
+        return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
+    prototype = Prototype.objects.get(prototypeID=prototypeID)
+    team = prototype.team
+    t_u_check = Team_User.objects.filter(team=team, user=user)
+    if len(t_u_check) == 0:
+        return JsonResponse({'errno': 1, 'msg': '您不具有分享权限'})
+    if not prototype.is_sharing:
+        return JsonResponse({'errno': 6, 'msg': '预览功能已关闭'})
+    prototype.is_sharing = False
+    prototype.save()
+    return JsonResponse({'errno': 0, 'msg': '关闭成功'})

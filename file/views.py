@@ -138,7 +138,9 @@ def edit_file(request):
         return JsonResponse({'errno': 3092, 'msg': "无法编辑文件夹"})
     file.content = content
     file.save()
-    file.project.is_edit = (file.project.is_edit + 1) % 2
+    pro = file.project
+    pro.is_edit = (pro.is_edit + 1) % 2
+    # file.project.is_edit = (file.project.is_edit + 1) % 2
     file.project.save()
     return JsonResponse({'errno': 0,
                          'msg': "保存成功",

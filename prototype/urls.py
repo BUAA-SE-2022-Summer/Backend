@@ -9,4 +9,7 @@ urlpatterns = [
     path('change_page_name', views.change_page_name),
     path('update_page', views.update_page),
     path('delete_page', views.delete_page),
+    path('share_prototype', views.share_prototype),
+    path('enter_sharing_link', views.enter_sharing_link),
+    path('close_sharing', views.close_sharing)
 ]
