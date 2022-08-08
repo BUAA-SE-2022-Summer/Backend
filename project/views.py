@@ -348,13 +348,14 @@ def copy_project(request):
     user_perm_check = Team_User.objects.filter(user=user, team=team)
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3, 'msg': "您不是该团队的成员，无法查看"})
-    project = Project.objects.get(projectName=projectName)
-    if len(project) != 0:
+    projects = Project.objects.filter(projectName=projectName)
+    if len(projects) != 0:
         return JsonResponse({'errno': 4, 'msg': "该项目已存在"})
     root_file = project.root_file
     root_fileID = root_file.fileID
-    new_project = Project(projectName=project.projectName+'_copy', projectDesc=project.projectDesc, projectImg=project.projectImg,
-                          projectUser=user.userID, is_star=False, team=team, is_delete=False)
+    new_project = Project(projectName=projectName, projectDesc=project.projectDesc,
+                          projectImg=project.projectImg, projectUser=user.userID, is_star=False,
+                          team=team, is_delete=False)
     new_project.save()
     new_root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
                          project_id=new_project.projectID)
