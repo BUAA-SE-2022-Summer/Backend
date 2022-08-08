@@ -228,6 +228,7 @@ def send_code(request):
         email_title = "找回密码"
         code = random_str()
         request.session["code"] = code
+        request.session["password"] = password
         request.session["username"] = username
         request.session["email"] = email
         email_body = "验证码为：{0}".format(code)
@@ -271,18 +272,21 @@ def reset_password(request):
         if num == 15:
             return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
         if username == request.session["username"] and email == request.session["email"]:
-            if code == request.session["code"]:
-                encoder = SHA256()
-                user.password = encoder.hash(password)
-                user.save()
-                del request.session["code"]
-                del request.session["username"]
-                del request.session["email"]
-                if num == 3:
-                    return JsonResponse({'errno': 0, 'msg': '更新密码成功', 'level': 'above middle'})
-                return JsonResponse({'errno': 200, 'msg': "更新密码成功", 'level': 'strong'})
+            if password == request.session["password"]:
+                if code == request.session["code"]:
+                    encoder = SHA256()
+                    user.password = encoder.hash(password)
+                    user.save()
+                    del request.session["code"]
+                    del request.session["username"]
+                    del request.session["email"]
+                    if num == 3:
+                        return JsonResponse({'errno': 0, 'msg': '更新密码成功', 'level': 'above middle'})
+                    return JsonResponse({'errno': 200, 'msg': "更新密码成功", 'level': 'strong'})
+                else:
+                    return JsonResponse({'errno': 9, 'msg': '验证码错误'})
             else:
-                return JsonResponse({'errno': 9, 'msg': '验证码错误'})
+                return JsonResponse({'errno': 16, 'msg': '两次密码不一致'})
         else:
             return JsonResponse({'errno': 8, 'msg': '用户信息错误'})
     else:
