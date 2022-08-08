@@ -1,10 +1,14 @@
 from random import Random
+import datetime
 from django.core.mail import send_mail
 from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import User
 from myUtils.utils import SHA256, check_pwd, validate_phone, validate_email, update_img_file
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import get_template
+from django.template import Context
 
 
 def random_str(randomlength=8):
@@ -225,14 +229,21 @@ def send_code(request):
             return JsonResponse({'errno': 14, 'msg': '密码必须包含数字、字母大小写、特殊字符中三种', 'level': 'middle'})
         if num == 15:
             return JsonResponse({'errno': 15, 'msg': '密码包含非法字符'})
-        email_title = "找回密码"
         code = random_str()
         request.session["code"] = code
         request.session["password"] = password
         request.session["username"] = username
         request.session["email"] = email
-        email_body = "验证码为：{0}".format(code)
-        send_status = send_mail(email_title, email_body, "mobook@horik.cn", [email, ])
+        htmly = get_template('test.html')
+        subject, from_email, to = '重置密码', 'mobook@horik.cn', email
+        html_content = htmly.render({'code': code, 'time': datetime.datetime.now().strftime('%Y-%m-%d')})
+        msg = EmailMultiAlternatives(subject, html_content, from_email, [to, ])
+        msg.content_subtype = 'html'
+        msg.attach_alternative('', "text/html")
+        msg.send()
+        # email_title = "找回密码"
+        # email_body = "验证码为：{0}".format(code)
+        # send_status = send_mail(email_title, email_body, "mobook@horik.cn", [email, ])
         return JsonResponse({'errno': 0, 'msg': "验证码已发送，请查收邮件"})
     else:
         return JsonResponse({'errno': 10, 'msg': "请求方式错误"})
