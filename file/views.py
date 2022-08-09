@@ -258,7 +258,7 @@ def restore_dir(fileID, team, project):
     sub_list = File.objects.filter(fatherID=fileID, team=team, isDelete=True, project=project)
     for i in sub_list:
         if i.file_type == 'dir':
-            restore_file(i.fileID, team, project)
+            restore_dir(i.fileID, team, project)
         i.isDelete = False
         i.save()
 
