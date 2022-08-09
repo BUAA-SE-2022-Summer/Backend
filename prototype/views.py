@@ -1,7 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-
 from project.models import Project
 from user.models import User
 from team.models import Team
@@ -9,10 +8,31 @@ from team.models import Team_User
 from file.models import File
 from prototype.models import Prototype
 from prototype.models import Page
+from prototype.models import PageUse
 from django.shortcuts import render
 from myUtils.utils import login_check
 from itsdangerous import URLSafeTimedSerializer, BadData
 from backend.settings import SECRET_KEY
+
+
+def add_page_use(page, user):
+    pageUse = PageUse(page=page, user=user)
+    pageUse.save()
+
+
+def delete_page_use(page, user):
+    pageUse = PageUse.objects.filter(page=page, user=user)
+    if len(pageUse) == 0:
+        return
+    pageUse.delete()
+
+
+def get_page_use_list(page):
+    user_list = []
+    page_use_list = PageUse.objects.filter(page=page)
+    for i in page_use_list:
+        user_list.append({'userID': i.user.userID, 'userName': i.user.userName, 'img': i.user.img})
+    return user_list
 
 
 # Create your views here.
@@ -55,6 +75,8 @@ def create_prototype(request):
         project = Project.objects.get(projectID=projectID)
         project.is_edit = (project.is_edit + 1) % 2
         project.save()
+        add_page_use(new_page, user)
+        user_list = get_page_use_list(new_page)
         return JsonResponse({'errno': 0,
                              'msg': '创建成功',
                              'prototypeID': new_prototype.prototypeID,
@@ -66,7 +88,8 @@ def create_prototype(request):
                              'pageID': new_page.pageID,
                              'pageName': new_page.pageName,
                              'pageComponentData': new_page.pageComponentData,
-                             'pageCanvasStyle': new_page.pageCanvasStyle
+                             'pageCanvasStyle': new_page.pageCanvasStyle,
+                             'user_list': user_list,
                              })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
@@ -123,12 +146,43 @@ def open_prototype(request):
         project = Project.objects.get(projectID=prototype.projectID)
         project.is_edit = (project.is_edit + 1) % 2
         project.save()
+        add_page_use(first_page, user)
+        user_list = get_page_use_list(first_page)
         return JsonResponse({'errno': 0,
                              'msg': '打开成功',
                              'namelist': namelist,
                              'first_component': first_page.pageComponentData,
                              'first_canvasStyle': first_page.pageCanvasStyle,
+                             'user_list': user_list,
                              })
+    return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+
+
+@csrf_exempt
+def delete_prototype(request):
+    if request.method == 'POST':
+        if not login_check(request):
+            return JsonResponse({'errno': 1002, 'msg': "未登录不能删除原型图"})
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限删除原型图'})
+        prototypeID = request.POST.get('prototypeID', '')
+        prototype = Prototype.objects.get(prototypeID=prototypeID)
+        pages = Page.objects.filter(prototype=prototype)
+        for page in pages:
+            user_list = get_page_use_list(page)
+            if len(user_list) > 1:
+                return JsonResponse({'errno': 2, 'msg': '原型图被使用，不能删除'})
+            if len(user_list) == 1 and user_list[0]['userID'] != userID:
+                return JsonResponse({'errno': 3, 'msg': '原型图被其他用户使用，不能删除'})
+        for page in pages:
+            page.delete()
+        prototype.delete()
+        return JsonResponse({'errno': 0, 'msg': '删除成功'})
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
@@ -146,16 +200,22 @@ def change_page(request):
             return JsonResponse({'errno': 1, 'msg': '没有权限更改页面'})
         prototypeID = request.POST.get('prototypeID', '')
         prototype = Prototype.objects.get(prototypeID=prototypeID)
+        old_pageID = request.POST.get('old_pageID', '')
+        old_page = Page.objects.get(pageID=old_pageID, prototype=prototype)
         pageID = request.POST.get('pageID', '')
         page = Page.objects.get(pageID=pageID, prototype=prototype)
         componentData = page.pageComponentData
         project = Project.objects.get(projectID=prototype.projectID)
         project.is_edit = (project.is_edit + 1) % 2
         project.save()
+        add_page_use(page, user)
+        delete_page_use(old_page, user)
+        user_list = get_page_use_list(page)
         return JsonResponse({'errno': 0,
                              'msg': '更改成功',
                              'componentData': componentData,
                              'canvasStyle': page.pageCanvasStyle,
+                             'user_list': user_list,
                              })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
@@ -245,6 +305,12 @@ def delete_page(request):
             return JsonResponse({'errno': 2, 'msg': '页面不存在'})
         if page.is_first:
             return JsonResponse({'errno': 3, 'msg': '不能删除首页'})
+        page_user = PageUse.objects.filter(page=page)
+        if len(page_user) > 1:
+            return JsonResponse({'errno': 4, 'msg': '页面正在被使用'})
+        if len(page_user) == 1 and page_user[0].user != user:
+            return JsonResponse({'errno': 4, 'msg': '页面正在被使用'})
+        delete_page_use(page, user)
         page.delete()
         pages = Page.objects.filter(prototype=prototype)
         namelist = []
@@ -254,11 +320,13 @@ def delete_page(request):
         project = Project.objects.get(projectID=prototype.projectID)
         project.is_edit = (project.is_edit + 1) % 2
         project.save()
+        user_list = get_page_use_list(first_page)
         return JsonResponse({'errno': 0,
                              'msg': '删除成功',
                              'namelist': namelist,
                              'first_component': first_page.pageComponentData,
-                             'first_canvasStyle': first_page.pageCanvasStyle
+                             'first_canvasStyle': first_page.pageCanvasStyle,
+                             'user_list': user_list
                              })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 

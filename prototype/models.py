@@ -1,5 +1,6 @@
 from django.db import models
 from team.models import Team
+from user.models import User
 
 
 # Create your models here.
@@ -40,3 +41,12 @@ class Page(models.Model):
 
     class Meta:
         db_table = 'page'
+
+
+class PageUse(models.Model):
+    ID = models.AutoField(primary_key=True)
+    page = models.ForeignKey(Page, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'page_use'

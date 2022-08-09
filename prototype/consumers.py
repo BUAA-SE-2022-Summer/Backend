@@ -1,16 +1,22 @@
 from asgiref.sync import async_to_sync
 from channels.generic.websocket import WebsocketConsumer
 import json
-from .models import Page, Prototype
+from .models import Page, Prototype, PageUse
 from django.views.decorators.csrf import csrf_exempt
+
+
+def get_page_use_list(page):
+    user_list = []
+    page_use_list = PageUse.objects.filter(page=page)
+    for i in page_use_list:
+        user_list.append({'userID': i.user.userID, 'userName': i.user.userName, 'img': i.user.img})
+    return user_list
 
 
 class Editprototype(WebsocketConsumer):
     @csrf_exempt
     def connect(self):
-        print(self.scope['user'])
         self.room_group_name = 'we_Edit'
-
         # Join room group
         async_to_sync(self.channel_layer.group_add)(
             self.room_group_name,
@@ -34,9 +40,14 @@ class Editprototype(WebsocketConsumer):
         pageComponentData = text_data_json['pageComponentData']
         pageCanvasStyle = text_data_json['pageCanvasStyle']
         page = Page.objects.get(pageID=pageID, prototype=prototype)
-        page.pageComponentData = pageComponentData
-        page.pageCanvasStyle = pageCanvasStyle
-        page.save()
+        user_list = get_page_use_list(page)
+        if page.pageComponentData == pageComponentData and page.pageCanvasStyle == pageCanvasStyle:
+            result = False
+        else:
+            page.pageComponentData = pageComponentData
+            page.pageCanvasStyle = pageCanvasStyle
+            page.save()
+            result = True
         # Send message to room group
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
@@ -45,7 +56,9 @@ class Editprototype(WebsocketConsumer):
                 'prototypeID': prototypeID,
                 'pageID': pageID,
                 'pageComponentData': pageComponentData,
-                'pageCanvasStyle': pageCanvasStyle
+                'pageCanvasStyle': pageCanvasStyle,
+                'result': result,
+                'user_list': user_list
             }
         )
 
@@ -56,10 +69,14 @@ class Editprototype(WebsocketConsumer):
         pageID = event['pageID']
         pageComponentData = event['pageComponentData']
         pageCanvasStyle = event['pageCanvasStyle']
+        result = event['result']
+        user_list = event['user_list']
         # Send message to WebSocket
         self.send(text_data=json.dumps({
             'prototypeID': prototypeID,
             'pageID': pageID,
             'pageComponentData': pageComponentData,
-            'pageCanvasStyle': pageCanvasStyle
+            'pageCanvasStyle': pageCanvasStyle,
+            'result': result,
+            'user_list': user_list,
         }))
