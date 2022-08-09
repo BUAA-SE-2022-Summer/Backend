@@ -510,7 +510,7 @@ def get_file_centre_list(request):
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法查看"})
     res = []
-    project_list = Project.objects.filter(team=team)
+    project_list = Project.objects.filter(team=team, is_delete=False)
     for pro in project_list:
         root_file = pro.root_file
         root_fileID = root_file.fileID
@@ -623,6 +623,8 @@ def delete_filelist_in_project(request):
         project = Project.objects.get(projectID=projectID)
     except ObjectDoesNotExist:
         return JsonResponse({'errno': 3089, 'msg': "无法获取项目信息"})
+    if project.is_delete:
+        return JsonResponse({'errno': 3085, 'msg': "项目已被删除"})
     team = project.team
     user_perm_check = Team_User.objects.filter(user=user, team=team)
     if len(user_perm_check) == 0:
@@ -652,7 +654,7 @@ def delete_filelist_in_centre(request):
     if len(user_perm_check) == 0:
         return JsonResponse({'errno': 3095, 'msg': "您不是该团队的成员，无法进入文档中心回收站"})
     res = []
-    project_list = Project.objects.filter(team=team)
+    project_list = Project.objects.filter(team=team, is_delete=False)
     for pro in project_list:
         root_file = pro.root_file
         res.append({
@@ -694,7 +696,7 @@ def get_my_filelist(request):
     except ValueError:
         return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
     try:
-        project = Project.objects.get(projectID=projectID)
+        project = Project.objects.get(projectID=projectID, is_delete=False)
     except ObjectDoesNotExist:
         return JsonResponse({'errno': 3089, 'msg': "无法获取项目信息"})
     team = project.team
