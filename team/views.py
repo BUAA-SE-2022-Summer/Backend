@@ -403,7 +403,8 @@ def get_team_info(request):
     user_list = []
     for i in team_user:
         i_user = i.user
-        user_list.append({'username': i_user.username,
+        user_list.append({'userID': i_user.userID,
+                          'username': i_user.username,
                           'real_name': i_user.real_name,
                           'email': i_user.email,
                           'is_supervisor': i.is_supervisor,
