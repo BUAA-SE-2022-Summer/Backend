@@ -178,7 +178,8 @@ def get_project_list(request):
                 'projectTime': project.projectTime.strftime('%Y-%m-%d %H:%M:%S'),
                 'last_modify_time': project.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
                 'is_star': project.is_star,
-                'project_root_fileID': project.root_file_id  # .fileID
+                'project_root_fileID': project.root_file_id,  # .fileID
+                'is_sharing': project.is_sharing
             })
         team.recently_used = timezone.now()
         team.save()

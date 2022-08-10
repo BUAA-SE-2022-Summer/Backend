@@ -20,6 +20,6 @@ class Project(models.Model):
     root_file = models.ForeignKey('file.File', on_delete=models.CASCADE, null=True, blank=True,
                                   related_name='project_root')
     is_edit = models.IntegerField(verbose_name='记录编辑', default=0)
-
+    is_sharing = models.BooleanField(default=True)
     class Meta:
         db_table = 'project'

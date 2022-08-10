@@ -351,14 +351,14 @@ def get_prototype_list(fatherID, projectID, allow_del, user, is_personal):
                 'create_time': i.create_time,
                 'last_modify_time': i.last_modify_time,
                 'file_type': 'pro',
-                'is_sharing': i.is_sharing
+                # 'is_sharing': i.is_sharing
             })
     return res
 
 
-def generate_sharing_code(prototypeID):
+def generate_sharing_code(projectID):
     serializer = URLSafeTimedSerializer(SECRET_KEY)
-    data = {'proID': prototypeID}
+    data = {'proID': projectID}
     token = serializer.dumps(data).encode().decode()
     return token
 
@@ -372,13 +372,14 @@ def share_prototype(request):
     userID = request.session['userID']
     user = User.objects.get(userID=userID)
     try:
-        prototypeID = request.POST.get('prototypeID')
+        projectID = request.POST.get('projectID')
     except ValueError:
         return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
 
     # try:
-    prototype = Prototype.objects.get(prototypeID=prototypeID)
-    team = prototype.team
+    # prototype = Prototype.objects.get(prototypeID=prototypeID)
+    project = Project.objects.get(projectID=projectID)
+    team = project.team
     t_u_check = Team_User.objects.filter(team=team, user=user)
     if len(t_u_check) == 0:
         return JsonResponse({'errno': 1, 'msg': '您不具有分享权限'})
@@ -386,9 +387,11 @@ def share_prototype(request):
     #     return JsonResponse({'errno': 5, 'msg': '原型图信息获取错误'})
     # except prototype.MultipleObjectsReturned:
     #     return JsonResponse({'errno': 5, 'msg': '原型图信息获取错误'})
-    prototype.is_sharing = True
-    prototype.save()
-    token = generate_sharing_code(prototypeID)
+    # prototype.is_sharing = True
+    # prototype.save()
+    project.is_sharing = True
+    project.save()
+    token = generate_sharing_code(projectID)
     return JsonResponse({'errno': 0, 'msg': '成功获取加密串', 'code': token})
 
 
@@ -412,20 +415,29 @@ def enter_sharing_link(request):
     except ValueError:
         return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
     proID = decode_sharing_code(code)
-    prototype = Prototype.objects.get(prototypeID=proID)
-    if not prototype.is_sharing:
+    # prototype = Prototype.objects.get(prototypeID=proID)
+    project = Project.objects.get(projectID=proID)
+    if not project.is_sharing:
         return JsonResponse({'errno': 5, 'msg': '原型图预览未开启'})
-    pages = Page.objects.filter(prototype=prototype)
-    namelist = []
-    for page in pages:
-        namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
-    first_page = Page.objects.get(prototype=prototype, is_first=True)
-    return JsonResponse({'errno': 0,
-                         'msg': '正在进入预览界面',
-                         'namelist': namelist,
-                         'first_component': first_page.pageComponentData,
-                         'first_canvasStyle': first_page.pageCanvasStyle,
-                         })
+    prototype_list = Prototype.objects.filter(projectID=proID, is_delete=False)
+    res = []
+    for i in prototype_list:
+        res.append({
+            'prototypeID': i.prototypeID,
+            'prototypeName': i.prototypeName,
+        })
+    return JsonResponse({'errno': 0, 'msg': '正在进入预览页面', 'list': res})
+    # pages = Page.objects.filter(prototype=prototype)
+    # namelist = []
+    # for page in pages:
+    #     namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
+    # first_page = Page.objects.get(prototype=prototype, is_first=True)
+    # return JsonResponse({'errno': 0,
+    #                      'msg': '正在进入预览界面',
+    #                      'namelist': namelist,
+    #                      'first_component': first_page.pageComponentData,
+    #                      'first_canvasStyle': first_page.pageCanvasStyle,
+    #                      })
 
 
 @csrf_exempt
@@ -437,19 +449,52 @@ def close_sharing(request):
     userID = request.session['userID']
     user = User.objects.get(userID=userID)
     try:
-        prototypeID = request.POST.get('prototypeID')
+        projectID = request.POST.get('projectID')
     except ValueError:
         return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
-    prototype = Prototype.objects.get(prototypeID=prototypeID)
-    team = prototype.team
+    # prototype = Prototype.objects.get(prototypeID=prototypeID)
+    project = Project.objects.get(projectID=projectID)
+    team = project.team
     t_u_check = Team_User.objects.filter(team=team, user=user)
     if len(t_u_check) == 0:
         return JsonResponse({'errno': 1, 'msg': '您不具有分享权限'})
-    if not prototype.is_sharing:
+    if not project.is_sharing:
         return JsonResponse({'errno': 6, 'msg': '预览功能已关闭'})
-    prototype.is_sharing = False
-    prototype.save()
+    project.is_sharing = False
+    project.save()
     return JsonResponse({'errno': 0, 'msg': '关闭成功'})
+
+
+@csrf_exempt
+def open_prototype_when_sharing(request):
+    if request.method == 'POST':
+        userID = request.session['userID']
+        user = User.objects.get(userID=userID)
+        teamID = request.POST.get('teamID', '')
+        team = Team.objects.get(teamID=teamID)
+        users = Team_User.objects.filter(user=user, team=team)
+        if len(users) == 0:
+            return JsonResponse({'errno': 1, 'msg': '没有权限打开原型图'})
+        prototypeID = request.POST.get('prototypeID', '')
+        prototype = Prototype.objects.get(prototypeID=prototypeID)
+        pages = Page.objects.filter(prototype=prototype)
+        namelist = []
+        for page in pages:
+            namelist.append({'pageID': page.pageID, 'pageName': page.pageName})
+        first_page = Page.objects.get(prototype=prototype, is_first=True)
+        project = Project.objects.get(projectID=prototype.projectID)
+        project.is_edit = (project.is_edit + 1) % 2
+        project.save()
+        add_page_use(first_page, user)
+        user_list = get_page_use_list(first_page)
+        return JsonResponse({'errno': 0,
+                             'msg': '打开成功',
+                             'namelist': namelist,
+                             'first_component': first_page.pageComponentData,
+                             'first_canvasStyle': first_page.pageCanvasStyle,
+                             'user_list': user_list,
+                             })
+    return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
 
 @csrf_exempt
@@ -468,7 +513,7 @@ def change_page_when_sharing(request):
     page = Page.objects.get(pageID=pageID, prototype=prototype)
     componentData = page.pageComponentData
     return JsonResponse({'errno': 0,
-                         'msg': '打开页面'+page.pageName,
+                         'msg': '打开页面' + page.pageName,
                          'componentData': componentData,
                          'canvasStyle': page.pageCanvasStyle,
                          })
