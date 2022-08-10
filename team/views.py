@@ -524,6 +524,7 @@ def leave_team(request):
             t_re2.is_creator = True
             t_re2.is_supervisor = True
             t_re2.save()
+            u_t.delete()
             return JsonResponse({'errno': 0, 'msg': '成功退出团队，已将超管身份移交给用户'+t_re2.user.username})
         try:
             successorID = request.POST.get('successorID')
