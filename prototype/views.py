@@ -468,13 +468,13 @@ def close_sharing(request):
 @csrf_exempt
 def open_prototype_when_sharing(request):
     if request.method == 'POST':
-        userID = request.session['userID']
-        user = User.objects.get(userID=userID)
-        teamID = request.POST.get('teamID', '')
-        team = Team.objects.get(teamID=teamID)
-        users = Team_User.objects.filter(user=user, team=team)
-        if len(users) == 0:
-            return JsonResponse({'errno': 1, 'msg': '没有权限打开原型图'})
+        # userID = request.session['userID']
+        # user = User.objects.get(userID=userID)
+        # teamID = request.POST.get('teamID', '')
+        # team = Team.objects.get(teamID=teamID)
+        # users = Team_User.objects.filter(user=user, team=team)
+        # if len(users) == 0:
+        #     return JsonResponse({'errno': 1, 'msg': '没有权限打开原型图'})
         prototypeID = request.POST.get('prototypeID', '')
         prototype = Prototype.objects.get(prototypeID=prototypeID)
         pages = Page.objects.filter(prototype=prototype)
@@ -485,14 +485,14 @@ def open_prototype_when_sharing(request):
         project = Project.objects.get(projectID=prototype.projectID)
         project.is_edit = (project.is_edit + 1) % 2
         project.save()
-        add_page_use(first_page, user)
-        user_list = get_page_use_list(first_page)
+        # add_page_use(first_page, user)
+        # user_list = get_page_use_list(first_page)
         return JsonResponse({'errno': 0,
                              'msg': '打开成功',
                              'namelist': namelist,
                              'first_component': first_page.pageComponentData,
                              'first_canvasStyle': first_page.pageCanvasStyle,
-                             'user_list': user_list,
+                             # 'user_list': user_list,
                              })
     return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
 
