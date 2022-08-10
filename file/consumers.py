@@ -31,15 +31,19 @@ class EditFile(WebsocketConsumer):
         content = text_data_json['content']
         projectID = text_data_json['projectID']
         fileID = text_data_json['fileID']
-        if projectID == -1:
+        if projectID == -1 or projectID == '-1':
             projectID = -1
         else:
             project = Project.objects.get(projectID=projectID)
             project.is_edit = (project.is_edit + 1) % 2
             project.save()
         file = File.objects.get(fileID=fileID)
-        file.content = content
-        file.save()
+        if file.content == content:
+            result = False
+        else:
+            file.content = content
+            file.save()
+            result = True
         # Send message to room group
         async_to_sync(self.channel_layer.group_send)(
             self.room_group_name,
@@ -47,7 +51,8 @@ class EditFile(WebsocketConsumer):
                 'type': 'edit_file',
                 'content': content,
                 'fileID': fileID,
-                'projectID': projectID
+                'projectID': projectID,
+                'result': result
             }
         )
 
@@ -57,9 +62,11 @@ class EditFile(WebsocketConsumer):
         content = event['content']
         fileID = event['fileID']
         projectID = event['projectID']
+        result = event['result']
         # Send message to WebSocket
         self.send(text_data=json.dumps({
             'content': content,
             'fileID': fileID,
-            'projectID': projectID
+            'projectID': projectID,
+            'result': result
         }))
