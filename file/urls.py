@@ -20,5 +20,9 @@ urlpatterns = [
     path('create_team_file', views.create_team_file),
     path('get_file_centre_list', views.get_file_centre_list),
     path('delete_filelist_in_centre', views.delete_filelist_in_centre),
-    path('completely_delete_file', views.completely_delete_file)
+    path('completely_delete_file', views.completely_delete_file),
+    path('get_user_xml', views.get_user_xml),
+    path('update_xml', views.update_xml),
+    path('save_xml', views.save_xml),
+    path('delete_xml', views.delete_xml),
 ]

@@ -78,7 +78,6 @@ class Xml(models.Model):
 
     user = models.ForeignKey(
         User,
-        # to_field='userID',
         on_delete=models.CASCADE,
         null=True,
         blank=True

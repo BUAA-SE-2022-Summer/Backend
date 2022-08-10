@@ -770,4 +770,84 @@ def create_team_file(request):
                          })
 
 
+@csrf_exempt
+def get_user_xml(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    xmls = Xml.objects.filter(user=user)
+    xml_list = []
+    for xml in xmls:
+        xml_list.append({
+            'xmlID': xml.xmlID,
+            'xml_name': xml.xml_name,
+            'content': xml.content,
+            'last_modify_time': xml.last_modify_time,
+        })
+    return JsonResponse({'errno': 0, 'msg': "成功获取用户xml文件", 'xml_list': xml_list})
 
+
+@csrf_exempt
+def update_xml(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        xmlID = request.POST.get('xmlID')
+        content = request.POST.get('content')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    try:
+        xml = Xml.objects.get(xmlID=xmlID, user=user)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 3098, 'msg': "xml文件不存在"})
+    xml.content = content
+    xml.save()
+    return JsonResponse({'errno': 0, 'msg': "成功更新xml文件"})
+
+
+@csrf_exempt
+def save_xml(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        xml_name = request.POST.get('xml_name')
+        content = request.POST.get('content')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    if xml_name == '':
+        return JsonResponse({'errno': 3099, 'msg': "xml文件名称不得为空"})
+    xmls = Xml.objects.filter(xml_name=xml_name)
+    if len(xmls) != 0:
+        return JsonResponse({'errno': 3102, 'msg': "xml文件名称重复"})
+    new_xml = Xml(xml_name=xml_name,
+                  content=content,
+                  user=user)
+    new_xml.save()
+    return JsonResponse({'errno': 0, 'msg': "成功保存xml文件"})
+
+
+@csrf_exempt
+def delete_xml(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    user = get_user(request)
+    try:
+        xmlID = request.POST.get('xmlID')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    try:
+        xml = Xml.objects.get(xmlID=xmlID, user=user)
+    except ObjectDoesNotExist:
+        return JsonResponse({'errno': 3098, 'msg': "xml文件不存在"})
+    xml.delete()
+    return JsonResponse({'errno': 0, 'msg': "成功删除xml文件"})
