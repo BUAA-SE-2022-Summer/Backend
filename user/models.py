@@ -10,7 +10,8 @@ class User(models.Model):
     email = models.EmailField(verbose_name='邮箱', null=True)
     phone = models.CharField(verbose_name='手机号', max_length=11, default='')
     profile = models.TextField(verbose_name='个人简介', default='')
-    img = models.CharField(verbose_name='头像', max_length=256, default='')
+    img = models.CharField(verbose_name='头像', max_length=256,
+                           default='https://xuemolan.oss-cn-hangzhou.aliyuncs.com/default.png')
 
     class Meta:
         db_table = 'user'

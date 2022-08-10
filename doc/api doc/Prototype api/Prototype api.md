@@ -510,6 +510,38 @@
   }
   ```
 
-  
 
+#### delete_page_user(创建原型图)
+
+- 路由：/api/prototype/delete_page_user
+
+- 请求方式：POST
+
+- 前端request格式：
+
+  ```json
+  {
+      'pageID':xxx,
+  }
+  ```
+
+- 后端response:
+
+  ```json
+  {'errno': 0, 'msg': '删除成功'}
+  ```
+
+- 错误提示
+
+  - 请求方式错误
+
+    ```json
+    {'errno': 10, 'msg': "请求方式错误"}
+    ```
+
+  - 用户未登录
+
+    ```json
+    {'errno': 1002, 'msg': "未登录不能创建原型图"}
+    ```
 
