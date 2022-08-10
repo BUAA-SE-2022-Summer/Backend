@@ -111,5 +111,38 @@
   
   ```
 
-#### 
+#### change_page_when_sharing（关闭分享）
+
+- 路由：/api/prototype/change_page_when_sharing
+
+- 请求方式：POST
+
+- 前端request格式
+
+  ```json
+  {
+  'code':xxx,
+  'pageID':xxx
+  }
+  ```
+
+- 后端返回格式
+
+  ```json
+  {'errno': 0,
+   'msg': '打开页面'+page.pageName,
+   'componentData': componentData,
+   'canvasStyle': page.pageCanvasStyle,
+  }
+  ```
+
+- 异常
+
+  ```json
+  {'errno': 10, 'msg': '请求方式错误'}
+  {'errno': 5, 'msg': '预览功能已关闭，无法打开页面'}
+  {'errno': 4, 'msg': '信息获取失败'}
+  
+  ```
+
 

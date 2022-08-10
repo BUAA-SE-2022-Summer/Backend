@@ -13,5 +13,6 @@ urlpatterns = [
     path('show_my_team_list', views.show_my_team_list),
     path('confirm_invitation', views.confirm_invitation),
     path('accept_invitation', views.accept_invitation),
-    path('recently_used_teams', views.recently_used_teams)
+    path('recently_used_teams', views.recently_used_teams),
+    path('leave_team', views.leave_team)
 ]

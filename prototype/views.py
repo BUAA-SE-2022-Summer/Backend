@@ -345,7 +345,8 @@ def get_prototype_list(fatherID, projectID, allow_del, user, is_personal):
                 'file_name': i.prototypeName,
                 'create_time': i.create_time,
                 'last_modify_time': i.last_modify_time,
-                'file_type': 'pro'
+                'file_type': 'pro',
+                'is_sharing': i.is_sharing
             })
     return res
 
@@ -397,8 +398,8 @@ def decode_sharing_code(code):
 def enter_sharing_link(request):
     if request.method != 'POST':
         return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
-    if not login_check(request):
-        return JsonResponse({'errno': 1002, 'msg': "请先登录"})
+    # if not login_check(request):
+    #     return JsonResponse({'errno': 1002, 'msg': "请先登录"})
     # userID = request.session['userID']
     # user = User.objects.get(userID=userID)
     try:
@@ -444,3 +445,25 @@ def close_sharing(request):
     prototype.is_sharing = False
     prototype.save()
     return JsonResponse({'errno': 0, 'msg': '关闭成功'})
+
+
+@csrf_exempt
+def change_page_when_sharing(request):
+    if request.method != 'POST':
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+    try:
+        code = request.POST.get('code')
+        pageID = request.POST.get('pageID', '')
+    except ValueError:
+        return JsonResponse({'errno': 4, 'msg': '信息获取失败'})
+    proID = decode_sharing_code(code)
+    prototype = Prototype.objects.get(prototypeID=proID)
+    if not prototype.is_sharing:
+        return JsonResponse({'errno': 5, 'msg': '预览功能已关闭，无法打开页面'})
+    page = Page.objects.get(pageID=pageID, prototype=prototype)
+    componentData = page.pageComponentData
+    return JsonResponse({'errno': 0,
+                         'msg': '打开页面'+page.pageName,
+                         'componentData': componentData,
+                         'canvasStyle': page.pageCanvasStyle,
+                         })
