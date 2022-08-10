@@ -31,9 +31,12 @@ class EditFile(WebsocketConsumer):
         content = text_data_json['content']
         projectID = text_data_json['projectID']
         fileID = text_data_json['fileID']
-        project = Project.objects.get(projectID=projectID)
-        project.is_edit = (project.is_edit + 1) % 2
-        project.save()
+        if projectID == -1:
+            projectID = -1
+        else:
+            project = Project.objects.get(projectID=projectID)
+            project.is_edit = (project.is_edit + 1) % 2
+            project.save()
         file = File.objects.get(fileID=fileID)
         file.content = content
         file.save()
