@@ -8,6 +8,7 @@ from team.models import Team
 from team.models import Team_User
 from django.shortcuts import render
 from file.models import File
+from project.pic_list import choose_picture
 
 
 def login_check(request):
@@ -37,7 +38,7 @@ def create_project(request):
         if len(projects) > 0:
             return JsonResponse({'errno': 2, 'msg': '项目名称已存在'})
         new_project = Project(projectName=project_name, projectDesc=project_desc,
-                              projectUser=user.userID, team=team)
+                              projectUser=user.userID, team=team, projectImg=choose_picture())
         new_project.save()
         root_file = File(fatherID=-1, file_type='dir', file_name='root', isDelete=False, team=team,
                          project_id=new_project.projectID)
@@ -373,6 +374,7 @@ def copy_project(request):
                          'projectID': new_project.projectID,
                          'projectName': new_project.projectName,
                          'projectUser': new_project.projectUser,
+                         'projectImg': new_project.projectImg,
                          'project_root_fileID': new_root_file.fileID})
 
 
@@ -381,7 +383,8 @@ def copy_dir_file(src_dirID, des_dirID, projectID, new_projectID):
     file_list = File.objects.filter(fatherID=src_dirID, project_id=projectID)
     for file in file_list:
         new_file = File(file_name=file.file_name, file_type=file.file_type, fatherID=des_dirID, isDelete=file.isDelete,
-                        content=file.content, is_star= file.is_star, user=file.user, team=file.team, project_id=new_projectID)
+                        content=file.content, is_star=file.is_star, user=file.user, team=file.team,
+                        project_id=new_projectID)
         new_file.save()
         if file.file_type == 'dir':
             copy_dir_file(file.fileID, new_file.fileID, projectID, new_projectID)
