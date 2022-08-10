@@ -469,3 +469,17 @@ def change_page_when_sharing(request):
                          'componentData': componentData,
                          'canvasStyle': page.pageCanvasStyle,
                          })
+
+
+@csrf_exempt
+def delete_page_user(request):
+    if request.method != 'POST':
+        return JsonResponse({'errno': 10, 'msg': '请求方式错误'})
+    if not login_check(request):
+        return JsonResponse({'errno': 1002, 'msg': "请先登录"})
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    pageID = request.POST.get('pageID')
+    page = Page.objects.get(pageID=pageID)
+    delete_page_use(page, user)
+    return JsonResponse({'errno': 0, 'msg': '删除成功'})

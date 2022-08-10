@@ -13,5 +13,6 @@ urlpatterns = [
     path('share_prototype', views.share_prototype),
     path('enter_sharing_link', views.enter_sharing_link),
     path('close_sharing', views.close_sharing),
-    path('change_page_when_sharing', views.change_page_when_sharing)
+    path('change_page_when_sharing', views.change_page_when_sharing),
+    path('delete_page_user', views.delete_page_user),
 ]
