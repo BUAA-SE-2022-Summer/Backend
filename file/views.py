@@ -6,7 +6,7 @@ from prototype.models import Prototype
 from user.models import User
 from project.models import Project
 from team.models import Team, Team_User
-from .models import File
+from .models import File, Xml
 from .error import *
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from prototype.views import get_prototype_list
@@ -768,3 +768,6 @@ def create_team_file(request):
                          'file_type': file_type,
                          'content': new_file.content,
                          })
+
+
+

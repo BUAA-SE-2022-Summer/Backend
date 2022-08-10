@@ -67,3 +67,20 @@ class File(models.Model):
             # 'last_modify_time'
             'isDir': self.isDir,
         }
+
+
+class Xml(models.Model):
+    xmlID = models.AutoField(primary_key=True, editable=False, null=False)
+    xml_name = models.CharField(max_length=100)
+    content = models.TextField(max_length=65535, null=True)
+    create_time = models.DateTimeField(auto_now_add=True)
+    last_modify_time = models.DateTimeField(auto_now=True)
+
+    user = models.ForeignKey(
+        User,
+        # to_field='userID',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True
+    )
+

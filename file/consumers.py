@@ -31,7 +31,7 @@ class EditFile(WebsocketConsumer):
         content = text_data_json['content']
         projectID = text_data_json['projectID']
         fileID = text_data_json['fileID']
-        if projectID == -1 or projectID == '-1':
+        if projectID == -1:
             projectID = -1
         else:
             project = Project.objects.get(projectID=projectID)
