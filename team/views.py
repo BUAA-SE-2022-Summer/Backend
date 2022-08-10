@@ -403,7 +403,8 @@ def get_team_info(request):
     user_list = []
     for i in team_user:
         i_user = i.user
-        user_list.append({'username': i_user.username,
+        user_list.append({'userID': i_user.userID,
+                          'username': i_user.username,
                           'real_name': i_user.real_name,
                           'email': i_user.email,
                           'is_supervisor': i.is_supervisor,
@@ -490,3 +491,58 @@ def recently_used_teams(request):
             'member_num': num
         })
     return JsonResponse({'errno': 0, 'msg': "最近使用团队列表如下", 'team_list': res})
+
+
+@csrf_exempt
+def leave_team(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    # print(userID)
+    try:
+        teamID = request.POST.get('teamID')
+        # successorID = request.POST.get('successorID')
+    except ValueError:
+        return JsonResponse({'errno': 2094, 'msg': "信息获取失败"})
+    team = Team.objects.get(teamID=teamID)
+    u_t_check = Team_User.objects.filter(user=user, team=team)
+    if len(u_t_check) == 0:
+        return JsonResponse({'errno': 2089, 'msg': "您不属于该团队"})
+    u_t = Team_User.objects.get(user=user, team=team)
+    if u_t.is_creator:
+        t_lens = Team_User.objects.filter(team=team)
+        if len(t_lens) == 1:
+            t_re = Team_User.objects.get(team=team)
+            t_re.delete()
+            team.delete()
+            return JsonResponse({'errno': 0, 'msg': "团队已解散"})
+        if len(t_lens) == 2:
+            t_re2 = Team_User.objects.get(team=team, is_creator=False)
+            t_re2.is_creator = True
+            t_re2.is_supervisor = True
+            t_re2.save()
+            return JsonResponse({'errno': 0, 'msg': '成功退出团队，已将超管身份移交给用户'+t_re2.user.username})
+        try:
+            successorID = request.POST.get('successorID')
+        except ValueError:
+            return JsonResponse({'errno': 2082, 'msg': "未指定超管身份继承者"})
+        # print(successorID)
+        # print(successorID == userID)
+        # print(eval(successorID) == userID)
+        # print(eval(successorID) == eval(userID))
+        if eval(successorID) == userID:
+            return JsonResponse({'errno': 2083, 'msg': "您不可指定自己为继承者"})
+        successor = User.objects.get(userID=successorID)
+        t_s_check = Team_User.objects.filter(user=successor, team=team)
+        if len(t_s_check) == 0:
+            return JsonResponse({'errno': 2081, 'msg': "您指定的用户不在团队中"})
+        t_s = Team_User.objects.get(team=team, user=successor)
+        t_s.is_creator = True
+        t_s.is_supervisor = True
+        t_s.save()
+    u_t.delete()
+    return JsonResponse({'errno': 0, 'msg': '您已退出团队'+team.team_name})
+    # return JsonResponse({'errno': 0, 'msg': ' '})
