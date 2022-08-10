@@ -831,7 +831,7 @@ def save_xml(request):
                   content=content,
                   user=user)
     new_xml.save()
-    return JsonResponse({'errno': 0, 'msg': "成功保存xml文件"})
+    return JsonResponse({'errno': 0, 'msg': "成功保存xml文件", 'xmlID': new_xml.xmlID})
 
 
 @csrf_exempt
