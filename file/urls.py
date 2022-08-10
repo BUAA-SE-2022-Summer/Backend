@@ -25,4 +25,5 @@ urlpatterns = [
     path('update_xml', views.update_xml),
     path('save_xml', views.save_xml),
     path('delete_xml', views.delete_xml),
+    path('delete_use', views.delete_use),
 ]

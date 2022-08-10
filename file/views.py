@@ -6,13 +6,36 @@ from prototype.models import Prototype
 from user.models import User
 from project.models import Project
 from team.models import Team, Team_User
-from .models import File, Xml
+from .models import File, Xml, FileUse
 from .error import *
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from prototype.views import get_prototype_list
 
 
 # Create your views here.
+def add_file_use(file, user):
+    list_file = FileUse.objects.filter(user=user)
+    if len(list_file) != 0:
+        list_file.delete()
+    fileUse = FileUse.objects.filter(file=file, user=user)
+    if len(fileUse) == 0:
+        fileUse = FileUse(file=file, user=user)
+        fileUse.save()
+
+
+def delete_file_use(file, user):
+    fileUse = FileUse.objects.filter(file=file, user=user)
+    if len(fileUse) == 0:
+        return
+    fileUse.delete()
+
+
+def get_file_use_list(file):
+    user_list = []
+    file_use_list = FileUse.objects.filter(file=file)
+    for i in file_use_list:
+        user_list.append({'userID': i.user.userID, 'username': i.user.username, 'img': i.user.img})
+    return user_list
 
 
 def login_check(request):
@@ -151,6 +174,8 @@ def edit_file(request):
         pro.is_edit = (pro.is_edit + 1) % 2
         # file.project.is_edit = (file.project.is_edit + 1) % 2
         file.project.save()
+    add_file_use(file, user)
+    user_list = get_file_use_list(file)
     return JsonResponse({'errno': 0,
                          'msg': "保存成功",
                          'fileID': file.fileID,
@@ -160,6 +185,7 @@ def edit_file(request):
                          'editor': user.username,
                          'file_type': file.file_type,
                          'content': file.content,
+                         'user_list': user_list,
                          })
 
 
@@ -189,6 +215,8 @@ def read_file(request):
     # file.project.is_edit = (file.project.is_edit + 1) % 2
     # file.project.save()
     pro_time_update(file)
+    add_file_use(file, user)
+    user_list = get_file_use_list(file)
     return JsonResponse({'errno': 0,
                          'msg': "打开成功",
                          'fileID': file.fileID,
@@ -197,6 +225,7 @@ def read_file(request):
                          'last_modify_time': file.last_modify_time,
                          'file_type': file.file_type,
                          'content': file.content,
+                         'user_list': user_list,
                          })
 
 
@@ -784,7 +813,7 @@ def get_user_xml(request):
             'xmlID': xml.xmlID,
             'xml_name': xml.xml_name,
             'content': xml.content,
-            'last_modify_time': xml.last_modify_time,
+            'last_modify_time': xml.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
         })
     return JsonResponse({'errno': 0, 'msg': "成功获取用户xml文件", 'xml_list': xml_list})
 
@@ -851,3 +880,13 @@ def delete_xml(request):
         return JsonResponse({'errno': 3098, 'msg': "xml文件不存在"})
     xml.delete()
     return JsonResponse({'errno': 0, 'msg': "成功删除xml文件"})
+
+
+@csrf_exempt
+def delete_use(request):
+    userID = request.session['userID']
+    user = User.objects.get(userID=userID)
+    fileID = request.POST.get('fileID')
+    file = File.objects.get(fileID=fileID)
+    delete_file_use(file, user)
+    return JsonResponse({'errno': 0, 'msg': '删除成功'})

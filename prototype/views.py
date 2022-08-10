@@ -16,6 +16,9 @@ from backend.settings import SECRET_KEY
 
 
 def add_page_use(page, user):
+    list_page = PageUse.objects.filter(user=user)
+    if len(list_page) != 0:
+        list_page.delete()
     pageUse = PageUse.objects.filter(page=page, user=user)
     if len(pageUse) == 0:
         pageUse = PageUse(page=page, user=user)
