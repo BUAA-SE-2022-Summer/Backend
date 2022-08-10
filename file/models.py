@@ -83,3 +83,11 @@ class Xml(models.Model):
         blank=True
     )
 
+
+class FileUse(models.Model):
+    ID = models.AutoField(primary_key=True)
+    file = models.ForeignKey(File, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        db_table = 'file_use'
