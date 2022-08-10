@@ -784,7 +784,7 @@ def get_user_xml(request):
             'xmlID': xml.xmlID,
             'xml_name': xml.xml_name,
             'content': xml.content,
-            'last_modify_time': xml.last_modify_time,
+            'last_modify_time': xml.last_modify_time.strftime('%Y-%m-%d %H:%M:%S'),
         })
     return JsonResponse({'errno': 0, 'msg': "成功获取用户xml文件", 'xml_list': xml_list})
 
