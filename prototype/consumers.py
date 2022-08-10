@@ -9,7 +9,7 @@ def get_page_use_list(page):
     user_list = []
     page_use_list = PageUse.objects.filter(page=page)
     for i in page_use_list:
-        user_list.append({'userID': i.user.userID, 'userName': i.user.userName, 'img': i.user.img})
+        user_list.append({'userID': i.user.userID, 'userName': i.user.username, 'img': i.user.img})
     return user_list
 
 
