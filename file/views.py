@@ -890,3 +890,20 @@ def delete_use(request):
     file = File.objects.get(fileID=fileID)
     delete_file_use(file, user)
     return JsonResponse({'errno': 0, 'msg': '删除成功'})
+
+
+@csrf_exempt
+def get_root_id(request):
+    if request.method != 'POST':
+        return method_err()
+    if not login_check(request):
+        return not_login_err()
+    # user = get_user(request)
+    try:
+        projectID = request.POST.get('projectID')
+    except ValueError:
+        return JsonResponse({'errno': 3094, 'msg': "信息获取失败"})
+    project = Project.objects.get(projectID=projectID)
+    if project.is_delete:
+        return JsonResponse({'errno': 3082, 'msg': "项目已被删除"})
+    return JsonResponse({'errno': 0, 'msg': '成功获取根文件夹id', 'root_fileID': project.root_file.fileID})
